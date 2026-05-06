@@ -3,501 +3,529 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taura — Gerador de Relatórios</title>
+<title>Taura Reports</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #0f0f0f; --surface: #181818; --surface2: #222222; --surface3: #2a2a2a;
-  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
-  --text: #f0f0f0; --muted: #888; --muted2: #555;
-  --accent: #c8f55a; --accent-dim: rgba(200,245,90,0.12); --accent-dim2: rgba(200,245,90,0.05);
-  --danger: #ff5e5e; --warn: #f5a623; --success: #4cde8a; --info: #5b9ef5;
-  --radius: 10px; --radius-sm: 6px;
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d0d0d;--s1:#161616;--s2:#1e1e1e;--s3:#262626;--s4:#2e2e2e;
+  --b1:rgba(255,255,255,.06);--b2:rgba(255,255,255,.12);--b3:rgba(255,255,255,.18);
+  --tx:#f0f0f0;--mu:#999;--mu2:#666;
+  --ac:#c8f55a;--adim:rgba(200,245,90,.1);--adim2:rgba(200,245,90,.04);
+  --red:#ff5959;--rdim:rgba(255,89,89,.12);
+  --amb:#f5a623;--adm:rgba(245,166,35,.12);
+  --grn:#4cde8a;--gdim:rgba(76,222,138,.1);
+  --blu:#5b9ef5;--bdim:rgba(91,158,245,.1);
+  --r:12px;--rs:7px;--rx:4px;
 }
-body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
-.layout { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 52px 1fr; min-height: 100vh; }
-.topbar { grid-column: 1/-1; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 10px; }
-.logo-mark { width: 26px; height: 26px; background: var(--accent); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #0f0f0f; }
-.topbar-title { font-weight: 600; font-size: 14px; }
-.topbar-sub { font-size: 11px; color: var(--muted); margin-left: auto; }
-.sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
-.sidebar-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted2); padding: 4px 8px 6px; margin-top: 8px; }
-.sidebar-label:first-child { margin-top: 0; }
-.nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--muted); border: none; background: none; width: 100%; text-align: left; transition: color 0.15s, background 0.15s; }
-.nav-item:hover { background: var(--surface2); color: var(--text); }
-.nav-item.active { background: var(--accent-dim); color: var(--accent); }
-#sidebar-status-box { padding: 9px 10px; background: var(--surface2); border-radius: var(--radius-sm); font-size: 11px; color: var(--muted); margin-top: auto; line-height: 1.7; }
-.main { overflow-y: auto; padding: 28px 32px; display: flex; flex-direction: column; gap: 22px; max-width: 920px; }
-.section { display: none; flex-direction: column; gap: 18px; }
-.section.active { display: flex; }
-.section-header h2 { font-size: 18px; font-weight: 600; margin-bottom: 3px; }
-.section-header p { color: var(--muted); font-size: 13px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; }
-.card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 14px; font-weight: 500; }
-label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
-input[type="text"], input[type="password"], textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; padding: 8px 11px; font-family: inherit; outline: none; transition: border-color 0.15s; }
-input:focus, textarea:focus { border-color: var(--border2); }
-textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
-.field { margin-bottom: 14px; }
-.field:last-child { margin-bottom: 0; }
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: opacity 0.15s, transform 0.1s; white-space: nowrap; }
-.btn:active { transform: scale(0.98); }
-.btn-primary { background: var(--accent); color: #0f0f0f; }
-.btn-primary:hover { opacity: 0.88; }
-.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn-outline { background: transparent; border: 1px solid var(--border2); color: var(--text); }
-.btn-outline:hover { background: var(--surface2); }
-.btn-google { background: #fff; color: #333; border: 1px solid #ddd; }
-.btn-google:hover { background: #f5f5f5; }
-.badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
-.badge-red { background: rgba(255,94,94,0.15); color: var(--danger); }
-.badge-amber { background: rgba(245,166,35,0.15); color: var(--warn); }
-.badge-green { background: rgba(76,222,138,0.15); color: var(--success); }
-.badge-gray { background: var(--surface2); color: var(--muted); }
-.badge-blue { background: rgba(91,158,245,0.15); color: var(--info); }
-.status-bar { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 13px; font-size: 13px; display: flex; align-items: center; gap: 9px; }
-.status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.status-dot.idle { background: var(--muted); }
-.status-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
-.status-dot.done { background: var(--success); }
-.status-dot.error { background: var(--danger); }
-@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
-.alert { padding: 11px 14px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; }
-.alert-warn { background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.25); color: #f5c56a; }
-.alert-info { background: var(--accent-dim); border: 1px solid rgba(200,245,90,0.2); color: #b8e050; }
-.alert-danger { background: rgba(255,94,94,0.1); border: 1px solid rgba(255,94,94,0.25); color: var(--danger); }
-.upload-zone { border: 2px dashed var(--border2); border-radius: var(--radius); padding: 36px 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
-.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-dim2); }
-.upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-.upload-success { border-color: var(--success) !important; background: rgba(76,222,138,0.04) !important; }
-.action-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+body{background:var(--bg);color:var(--tx);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.6;min-height:100vh;}
 
-/* ── REPORT BLOCKS ── */
-.report-wrap { display: flex; flex-direction: column; gap: 14px; }
-.report-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.report-block-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
-.report-block-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-.report-block-body { padding: 16px 18px; }
-.copy-btn { background: none; border: 1px solid var(--border2); border-radius: 4px; color: var(--muted); font-size: 11px; padding: 2px 7px; cursor: pointer; }
-.copy-btn:hover { color: var(--text); }
+/* ── SHELL ── */
+.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:54px 1fr;min-height:100vh;}
+.topbar{grid-column:1/-1;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 22px;gap:12px;}
+.logo{width:28px;height:28px;background:var(--ac);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#0d0d0d;flex-shrink:0;}
+.app-name{font-weight:700;font-size:15px;letter-spacing:-.2px;}
+.app-sub{font-size:11px;color:var(--mu);margin-left:auto;}
+.sidebar{background:var(--s1);border-right:1px solid var(--b1);padding:16px 10px;display:flex;flex-direction:column;gap:3px;}
+.sg{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu2);padding:3px 8px 5px;margin-top:8px;}
+.sg:first-child{margin-top:0;}
+.nv{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--rs);cursor:pointer;font-size:13px;color:var(--mu);border:none;background:none;width:100%;text-align:left;transition:all .15s;}
+.nv:hover{background:var(--s2);color:var(--tx);}
+.nv.on{background:var(--adim);color:var(--ac);}
+.nv-icon{font-size:13px;flex-shrink:0;}
+#sb-info{padding:10px;background:var(--s2);border-radius:var(--rs);font-size:11px;color:var(--mu);margin-top:auto;line-height:1.7;}
+.main{overflow-y:auto;padding:30px 36px;display:flex;flex-direction:column;gap:22px;max-width:980px;}
+.pg{display:none;flex-direction:column;gap:18px;}
+.pg.on{display:flex;}
+.ph h2{font-size:19px;font-weight:700;margin-bottom:3px;letter-spacing:-.3px;}
+.ph p{color:var(--mu);font-size:13px;}
+
+/* ── FORMS ── */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:20px 24px;}
+.ct{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);margin-bottom:14px;font-weight:600;}
+label{font-size:13px;color:var(--mu);display:block;margin-bottom:4px;}
+input[type=text],input[type=password],textarea,select{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);color:var(--tx);font-size:13px;padding:8px 12px;font-family:inherit;outline:none;transition:border-color .15s;}
+input:focus,textarea:focus,select:focus{border-color:var(--b3);}
+textarea{resize:vertical;min-height:72px;line-height:1.5;}
+.f{margin-bottom:14px;}.f:last-child{margin-bottom:0;}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.r4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s,transform .1s;white-space:nowrap;}
+.btn:active{transform:scale(.98);}
+.bp{background:var(--ac);color:#0d0d0d;}
+.bp:hover{opacity:.88;}
+.bp:disabled{opacity:.3;cursor:not-allowed;}
+.bo{background:transparent;border:1px solid var(--b2);color:var(--tx);}
+.bo:hover{background:var(--s2);}
+.br{background:var(--red);color:#fff;}
+.br:hover{opacity:.88;}
+.bg{background:var(--s3);color:var(--tx);border:1px solid var(--b2);}
+.bg:hover{background:var(--s4);}
+.abar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.b-red{background:var(--rdim);color:var(--red);}
+.b-amb{background:var(--adm);color:var(--amb);}
+.b-grn{background:var(--gdim);color:var(--grn);}
+.b-blu{background:var(--bdim);color:var(--blu);}
+.b-mu{background:var(--s3);color:var(--mu);}
+.b-ac{background:var(--adim);color:var(--ac);}
+
+/* ── STATUS ── */
+.sbar{background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:10px;}
+.sd{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sd.idle{background:var(--mu);}
+.sd.spin{background:var(--amb);animation:pulse 1s infinite;}
+.sd.ok{background:var(--grn);}
+.sd.err{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.alert{padding:12px 15px;border-radius:var(--rs);font-size:13px;line-height:1.5;}
+.aw{background:var(--adm);border:1px solid rgba(245,166,35,.25);color:#f5c76a;}
+.ai{background:var(--adim);border:1px solid rgba(200,245,90,.2);color:#b8e050;}
+.ae{background:var(--rdim);border:1px solid rgba(255,89,89,.25);color:var(--red);}
+
+/* ── UPLOAD ── */
+.uz{border:2px dashed var(--b2);border-radius:var(--r);padding:38px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.uz:hover,.uz.dv{border-color:var(--ac);background:var(--adim2);}
+.uz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.uz-ok{border-color:var(--grn)!important;background:rgba(76,222,138,.04)!important;}
+
+/* ══════════════════════════════════════════
+   EDITOR SECTION
+══════════════════════════════════════════ */
+.editor-wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;min-height:600px;}
+.editor-pane{display:flex;flex-direction:column;}
+.editor-header{background:var(--s2);padding:10px 16px;border-bottom:1px solid var(--b1);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);display:flex;align-items:center;justify-content:space-between;}
+.editor-ta{flex:1;background:var(--s1);color:var(--tx);font-family:'Courier New',monospace;font-size:13px;line-height:1.7;padding:18px;border:none;outline:none;resize:none;width:100%;border-right:1px solid var(--b1);}
+.preview-pane{background:var(--s1);overflow-y:auto;padding:24px 28px;}
+
+/* ══════════════════════════════════════════
+   REPORT DOCUMENT STYLES (for preview & PDF)
+══════════════════════════════════════════ */
+.doc{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#1a1a1a;min-width:700px;}
 
 /* Cover */
-.report-cover { background: linear-gradient(135deg, #181818 0%, #1e1e1e 100%); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; }
-.report-cover-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); font-weight: 600; margin-bottom: 10px; }
-.report-cover-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
-.report-cover-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
-.report-cover-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; border-top: 1px solid var(--border); padding-top: 20px; }
-.cover-metric-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
-.cover-metric-value { font-size: 20px; font-weight: 700; }
+.dc-cover{background:linear-gradient(135deg,#0d1117 0%,#111a0d 40%,#162110 100%);padding:56px 60px;display:flex;flex-direction:column;justify-content:space-between;min-height:380px;page-break-after:always;}
+.dc-tagline{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:#c8f55a;font-weight:700;margin-bottom:8px;}
+.dc-type{font-size:12px;color:#666;margin-bottom:28px;font-weight:400;}
+.dc-client{font-size:38px;font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:6px;}
+.dc-period{font-size:16px;color:#888;margin-bottom:48px;}
+.dc-meta{display:flex;gap:48px;border-top:1px solid rgba(255,255,255,.1);padding-top:24px;}
+.dc-meta-item{display:flex;flex-direction:column;gap:3px;}
+.dc-meta-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#666;}
+.dc-meta-val{font-size:13px;font-weight:600;color:#ccc;}
 
-/* Metrics grid */
-.metrics-8 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.metric-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
-.metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-.metric-value { font-size: 22px; font-weight: 700; }
-.metric-value.red { color: var(--danger); }
-.metric-value.amber { color: var(--warn); }
-.metric-value.green { color: var(--success); }
-.metric-value.accent { color: var(--accent); }
-.metric-value.blue { color: var(--info); }
+/* TOC */
+.dc-toc{padding:40px 60px;border-bottom:1px solid #e5e5e5;}
+.dc-toc-title{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:#c8f55a;font-weight:700;margin-bottom:20px;}
+.dc-toc-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;gap:12px;}
+.dc-toc-num{font-size:11px;color:#999;width:24px;flex-shrink:0;font-weight:600;}
+.dc-toc-dots{flex:1;border-bottom:1px dotted #ddd;margin:0 8px;margin-top:7px;}
 
-/* Pilares */
-.pilares-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.pilar-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
-.pilar-name { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
-.pilar-score { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-.pilar-score.red { color: var(--danger); }
-.pilar-score.amber { color: var(--warn); }
-.pilar-score.green { color: var(--success); }
-.progress-bar { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; border-radius: 3px; }
-
-/* Tables */
-.rtable { width: 100%; border-collapse: collapse; font-size: 13px; }
-.rtable th { text-align: left; padding: 7px 10px; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.rtable td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.4; }
-.rtable tr:last-child td { border-bottom: none; }
-.rtable tr:hover td { background: var(--accent-dim2); }
-.rtable td.mono { font-family: monospace; font-size: 11px; color: var(--muted); white-space: nowrap; }
-.rtable td.risk-name { font-weight: 500; }
-.rtable td .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.table-wrap { overflow-x: auto; }
-
-/* Gargalo cards */
-.gargalo-card { border-left: 3px solid var(--danger); background: var(--surface2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 14px; margin-bottom: 10px; }
-.gargalo-card:last-child { margin-bottom: 0; }
-.gargalo-id { font-family: monospace; font-size: 10px; color: var(--muted); margin-bottom: 2px; }
-.gargalo-name { font-weight: 500; font-size: 13px; margin-bottom: 8px; }
-.gargalo-situation { font-size: 12px; color: var(--muted); margin-bottom: 5px; padding: 6px 10px; background: rgba(0,0,0,0.2); border-radius: 4px; }
-.gargalo-action { font-size: 12px; }
-.gargalo-action strong { color: var(--accent); }
-
-/* Exposição table */
-.exp-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
-
-/* Charts */
-.chart-container { position: relative; }
-.chart-svg { width: 100%; overflow: visible; }
-.chart-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.chart-area { opacity: 0.15; }
-.chart-dot { r: 4; }
-.chart-label { font-size: 10px; fill: #888; }
-.chart-value-label { font-size: 10px; font-weight: 600; }
-.chart-grid { stroke: rgba(255,255,255,0.06); stroke-width: 1; }
-.chart-axis { stroke: rgba(255,255,255,0.12); stroke-width: 1; }
-.chart-bars-wrap { display: flex; align-items: flex-end; gap: 12px; height: 80px; }
-.chart-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.chart-bar-rect { width: 100%; border-radius: 3px 3px 0 0; min-height: 3px; }
-.chart-bar-lbl { font-size: 10px; color: var(--muted); text-align: center; }
-.chart-bar-val { font-size: 11px; font-weight: 600; }
-
-/* Donut */
-.donut-wrap { display: flex; align-items: center; gap: 24px; }
-.donut-legend { display: flex; flex-direction: column; gap: 7px; font-size: 12px; }
-.donut-item { display: flex; align-items: center; gap: 8px; }
-.donut-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+/* Section */
+.dc-sec{padding:40px 60px;border-bottom:1px solid #e8e8e8;}
+.dc-sec:last-child{border-bottom:none;}
+.dc-sec-tag{font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:#c8f55a;font-weight:700;margin-bottom:6px;}
+.dc-sec-title{font-size:22px;font-weight:800;color:#0d0d0d;margin-bottom:22px;letter-spacing:-.5px;}
+.dc-subsec{font-size:14px;font-weight:700;color:#1a1a1a;margin:22px 0 10px;}
 
 /* Prose */
-.prose { font-size: 14px; line-height: 1.8; color: var(--text); }
-.prose p { margin-bottom: 14px; }
-.prose p:last-child { margin-bottom: 0; }
-.prose ul { margin: 8px 0 14px 20px; }
-.prose li { margin-bottom: 5px; }
-.prose .subsec { font-weight: 600; color: var(--text); margin: 16px 0 6px; }
+.dc-prose{font-size:14px;line-height:1.85;color:#2a2a2a;}
+.dc-prose p{margin-bottom:13px;}
+.dc-prose p:last-child{margin-bottom:0;}
+.dc-prose ul{margin:8px 0 13px 22px;}
+.dc-prose li{margin-bottom:5px;}
+.dc-prose strong{font-weight:700;color:#1a1a1a;}
 
-/* Anexo */
-.anexo-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); }
-.anexo-tag { background: var(--accent-dim); color: var(--accent); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.05em; }
+/* KPI cards */
+.dc-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.dc-kpis.c3{grid-template-columns:repeat(3,1fr);}
+.dc-kpis.c2{grid-template-columns:repeat(2,1fr);}
+.dc-kpi{background:#f7f7f7;border-radius:8px;padding:16px 18px;border-left:3px solid #e0e0e0;}
+.dc-kpi.kpi-red{border-color:#ff5959;background:#fff5f5;}
+.dc-kpi.kpi-amb{border-color:#f5a623;background:#fff9f0;}
+.dc-kpi.kpi-grn{border-color:#4cde8a;background:#f0fff6;}
+.dc-kpi.kpi-ac{border-color:#c8f55a;background:#f8fff0;}
+.dc-kpi.kpi-blu{border-color:#5b9ef5;background:#f0f5ff;}
+.dc-kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:5px;font-weight:600;}
+.dc-kpi-val{font-size:26px;font-weight:800;color:#1a1a1a;letter-spacing:-1px;}
+.dc-kpi-sub{font-size:11px;color:#999;margin-top:3px;}
 
-/* Historico snippet */
-.historico-snippet { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-family: monospace; font-size: 12px; color: var(--muted); overflow-x: auto; white-space: pre; margin-top: 10px; }
+/* Pilares */
+.dc-pilares{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.dc-pilar{background:#f7f7f7;border-radius:8px;padding:14px 16px;}
+.dc-pilar-name{font-size:11px;color:#888;margin-bottom:4px;font-weight:600;}
+.dc-pilar-score{font-size:24px;font-weight:800;margin-bottom:8px;}
+.dc-pilar-bar{height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;}
+.dc-pilar-fill{height:100%;border-radius:3px;}
 
-/* Google connect */
-.google-connect-card { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.google-status-indicator { font-size: 12px; color: var(--muted); }
-.google-status-indicator.connected { color: var(--success); }
+/* Score hero */
+.dc-score-hero{display:flex;align-items:baseline;gap:16px;margin-bottom:16px;}
+.dc-score-big{font-size:56px;font-weight:800;color:#0d0d0d;letter-spacing:-2px;}
+.dc-score-info{display:flex;flex-direction:column;gap:4px;}
+.dc-score-prev{font-size:14px;color:#888;}
+.dc-score-ev{font-size:14px;font-weight:700;}
+.dc-score-ev.up{color:#2ecc71;}
+.dc-score-ev.dn{color:#e74c3c;}
 
-@media print {
-  .layout { display: block; }
-  .sidebar, .topbar, .action-bar, .copy-btn, .btn { display: none !important; }
-  .main { padding: 0; max-width: 100%; }
-  .section { display: flex !important; }
-  .report-block { break-inside: avoid; }
+/* Chart container */
+.dc-chart-wrap{background:#f7f7f7;border-radius:8px;padding:20px;margin-bottom:20px;}
+.dc-chart-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#999;margin-bottom:12px;}
+
+/* Tables */
+.dc-table{width:100%;border-collapse:collapse;font-size:13px;}
+.dc-table th{text-align:left;padding:9px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #e8e8e8;background:#fafafa;}
+.dc-table td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:top;line-height:1.45;}
+.dc-table tr:last-child td{border-bottom:none;}
+.dc-table tr:hover td{background:#fafafa;}
+.dc-table .td-risk{font-weight:700;font-size:13px;}
+.dc-table .td-act{font-size:12px;color:#666;margin-top:3px;}
+.dc-table .td-id{font-family:monospace;font-size:11px;color:#999;}
+.tw{overflow-x:auto;}
+
+/* Doc badge */
+.dc-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+.dc-b-red{background:#fff0f0;color:#e53e3e;border:1px solid #fcc;}
+.dc-b-amb{background:#fff8f0;color:#c97118;border:1px solid #fde;}
+.dc-b-grn{background:#f0fff6;color:#1e8a4a;border:1px solid #b8f5d0;}
+.dc-b-mu{background:#f5f5f5;color:#888;border:1px solid #e0e0e0;}
+.dc-b-ac{background:#f8fff0;color:#4a7a00;border:1px solid #c8f55a;}
+
+/* Gargalo */
+.dc-gargalo{border-left:3px solid #e53e3e;background:#fff8f8;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:12px;}
+.dc-gargalo:last-child{margin-bottom:0;}
+.dc-gargalo-risco{font-weight:700;font-size:14px;color:#1a1a1a;margin-bottom:3px;}
+.dc-gargalo-id{font-size:11px;color:#999;margin-bottom:8px;}
+.dc-gargalo-sit{font-size:12px;color:#666;padding:8px 12px;background:#fff;border-radius:4px;margin-bottom:6px;border-left:2px solid #fcc;}
+.dc-gargalo-acao{font-size:13px;color:#1a1a1a;}
+.dc-gargalo-acao strong{color:#c97118;}
+
+/* Progress bar (horas) */
+.dc-progress{background:#f0f0f0;border-radius:20px;height:28px;overflow:hidden;margin:12px 0;position:relative;}
+.dc-progress-fill{height:100%;border-radius:20px;display:flex;align-items:center;padding:0 14px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;}
+.dc-progress-label{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;color:#999;}
+
+/* Roadmap */
+.dc-roadmap{display:flex;flex-direction:column;gap:10px;}
+.dc-roadmap-item{display:flex;gap:16px;align-items:flex-start;}
+.dc-roadmap-num{width:28px;height:28px;border-radius:50%;background:#c8f55a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#0d0d0d;flex-shrink:0;margin-top:2px;}
+.dc-roadmap-body{flex:1;}
+.dc-roadmap-title{font-weight:700;font-size:14px;color:#1a1a1a;margin-bottom:3px;}
+.dc-roadmap-desc{font-size:13px;color:#555;line-height:1.5;}
+
+/* Saude contrato */
+.dc-saude-table{width:100%;border-collapse:collapse;}
+.dc-saude-table th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:2px solid #e8e8e8;}
+.dc-saude-table td{padding:9px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;}
+.dc-saude-ok{color:#1e8a4a;font-weight:700;}
+.dc-saude-warn{color:#c97118;font-weight:700;}
+
+/* Divider */
+.dc-divider{border:none;border-top:1px solid #e8e8e8;margin:20px 0;}
+
+/* Anexo tag */
+.dc-anexo-tag{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;}
+.dc-anexo-pill{background:#c8f55a;color:#0d0d0d;font-size:11px;font-weight:800;padding:3px 10px;border-radius:4px;letter-spacing:.05em;}
+
+/* ── PRINT ── */
+@media print{
+  .app{display:block;}
+  .sidebar,.topbar,.abar,.btn,.editor-wrap{display:none!important;}
+  .main{padding:0;max-width:100%;}
+  .pg{display:flex!important;}
+  .doc{min-width:auto;}
 }
 </style>
 </head>
 <body>
-<div class="layout">
-  <header class="topbar">
-    <div class="logo-mark">T</div>
-    <span class="topbar-title">Taura Reports</span>
-    <span class="topbar-sub">Gerador de Relatórios GRC & Operacional</span>
-  </header>
+<div class="app">
+<header class="topbar">
+  <div class="logo">T</div>
+  <span class="app-name">Taura Reports</span>
+  <span class="app-sub">Gerador de Relatórios GRC & Operacional</span>
+</header>
 
-  <nav class="sidebar">
-    <span class="sidebar-label">Navegação</span>
-    <button class="nav-item active" onclick="showSection('config',this)"><span>⚙</span> Configuração</button>
-    <button class="nav-item" onclick="showSection('grc',this)"><span>◉</span> Relatório GRC</button>
-    <button class="nav-item" onclick="showSection('ops',this)"><span>◎</span> Relatório Operacional</button>
-    <span class="sidebar-label">Histórico</span>
-    <button class="nav-item" onclick="showSection('historico',this)"><span>◈</span> Dados Históricos</button>
-    <div id="sidebar-status-box">Nenhuma planilha carregada</div>
-  </nav>
+<nav class="sidebar">
+  <span class="sg">Fluxo</span>
+  <button class="nv on" onclick="go('cfg',this)"><span class="nv-icon">①</span> Configuração</button>
+  <button class="nv" onclick="go('edit-grc',this)"><span class="nv-icon">②</span> Editar GRC</button>
+  <button class="nv" onclick="go('prev-grc',this)"><span class="nv-icon">③</span> Preview GRC</button>
+  <span class="sg">Operacional</span>
+  <button class="nv" onclick="go('edit-ops',this)"><span class="nv-icon">②</span> Editar Operacional</button>
+  <button class="nv" onclick="go('prev-ops',this)"><span class="nv-icon">③</span> Preview Operacional</button>
+  <span class="sg">Histórico</span>
+  <button class="nv" onclick="go('hist',this)"><span class="nv-icon">◈</span> Dados Históricos</button>
+  <div id="sb-info">Nenhuma planilha carregada</div>
+</nav>
 
-  <main class="main">
+<main class="main">
 
-    <!-- ═══ CONFIGURAÇÃO ═══ -->
-    <section class="section active" id="section-config">
-      <div class="section-header"><h2>Configuração</h2><p>Configure as integrações e faça o upload da planilha do cliente.</p></div>
+<!-- ══ 1. CONFIG ══ -->
+<section class="pg on" id="pg-cfg">
+  <div class="ph"><h2>Configuração</h2><p>Preencha os dados, faça upload da planilha e gere os relatórios.</p></div>
 
-      <div class="card">
-        <div class="card-title">Anthropic API Key</div>
-        <div class="field">
-          <label>Chave da API Claude (para geração dos textos)</label>
-          <input type="password" id="anthropic-key" placeholder="sk-ant-..." />
-        </div>
-        <div class="alert alert-info" style="margin-top:8px;">A chave fica apenas no seu navegador, nunca é enviada a terceiros.</div>
-      </div>
+  <div class="card">
+    <div class="ct">Anthropic API Key</div>
+    <div class="f"><label>Chave da API Claude</label><input type="password" id="ak" placeholder="sk-ant-..."/></div>
+    <div class="alert ai" style="margin-top:8px">Fica apenas no seu navegador. Nunca enviada a terceiros.</div>
+  </div>
 
-      <div class="card">
-        <div class="card-title">Google Docs — Exportação</div>
-        <div class="alert alert-warn" style="margin-bottom:14px;">
-          Para gerar o Google Doc automaticamente, você precisa de um <strong>Google OAuth Client ID</strong> configurado no Google Cloud Console com a Docs API e Drive API habilitadas. Cole o Client ID abaixo.
-        </div>
-        <div class="field">
-          <label>Google OAuth Client ID</label>
-          <input type="text" id="google-client-id" placeholder="XXXXXXXX.apps.googleusercontent.com" />
-        </div>
-        <div class="google-connect-card">
-          <button class="btn btn-google" onclick="connectGoogle()">
-            <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            Conectar com Google
-          </button>
-          <span class="google-status-indicator" id="google-status">Não conectado</span>
-        </div>
-      </div>
+  <div class="card">
+    <div class="ct">Dados do Cliente</div>
+    <div class="r2">
+      <div class="f"><label>Nome do cliente</label><input type="text" id="cl-name" placeholder="Ex: Lastlink"/></div>
+      <div class="f"><label>Mês de referência</label><input type="text" id="cl-mes" placeholder="Ex: Abril/2026"/></div>
+    </div>
+    <div class="r4">
+      <div class="f"><label>Horas contratadas/mês</label><input type="text" id="h-c" placeholder="Ex: 80"/></div>
+      <div class="f"><label>Horas executadas</label><input type="text" id="h-e" placeholder="Ex: 68"/></div>
+      <div class="f"><label>Score mês anterior (%)</label><input type="text" id="sc-ant" placeholder="Ex: 8.82"/></div>
+      <div class="f"><label>Vigência contratual</label><input type="text" id="vigencia" placeholder="Ex: 12 ciclos | Renov. Dez/26"/></div>
+    </div>
+    <div class="r3">
+      <div class="f"><label>Autor</label><input type="text" id="autor" placeholder="Nome do analista"/></div>
+      <div class="f"><label>Co-autor</label><input type="text" id="coautor" placeholder="Nome"/></div>
+      <div class="f"><label>Revisor</label><input type="text" id="revisor" placeholder="Nome"/></div>
+    </div>
+    <div class="f"><label>Contexto do cliente (melhora muito os textos gerados pela IA)</label>
+    <textarea id="ctx" placeholder="Ex: Fintech de pagamentos B2B. Em processo de due diligence para SOC 2. Abril foi marcado por conclusão do gap analysis ISO 27001. Produto principal é plataforma de links para criadores de conteúdo."></textarea></div>
+  </div>
 
-      <div class="card">
-        <div class="card-title">Dados do Cliente</div>
-        <div class="field-row">
-          <div class="field"><label>Nome do cliente</label><input type="text" id="client-name" placeholder="Ex: Lastlink" /></div>
-          <div class="field"><label>Mês de referência</label><input type="text" id="ref-month" placeholder="Ex: Abril/2026" /></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Horas contratadas/mês</label><input type="text" id="horas-contratadas" placeholder="Ex: 60" /></div>
-          <div class="field"><label>Horas executadas no ciclo</label><input type="text" id="horas-executadas" placeholder="Ex: 98" /></div>
-        </div>
-        <div class="field">
-          <label>Contexto do cliente (melhora muito os textos gerados)</label>
-          <textarea id="client-context" placeholder="Ex: Fintech de pagamentos B2B. Produto é plataforma de links para criadores de conteúdo. Em processo de due diligence para SOC 2. Março foi marcado por incidente de segurança com impacto financeiro."></textarea>
-        </div>
-      </div>
+  <div class="card">
+    <div class="ct">Planilha do Cliente (.xlsx)</div>
+    <p style="font-size:13px;color:var(--mu);margin-bottom:14px">No Google Sheets: <strong style="color:var(--tx)">Arquivo → Fazer download → Microsoft Excel (.xlsx)</strong><br>
+    Abas necessárias: <strong style="color:var(--tx)">RISCOS, TRATAMENTO, VULNERABILIDADES, IMPORTAÇÃO</strong>. Aba <strong style="color:var(--ac)">HISTÓRICO</strong> para gráficos contínuos (opcional mas recomendado).</p>
+    <div class="uz" id="uz">
+      <input type="file" id="fi" accept=".xlsx,.xls" onchange="upload(this.files[0])"/>
+      <div style="font-size:20px;margin-bottom:8px">↑</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px" id="uz-t">Arraste o Excel aqui ou clique</div>
+      <div style="font-size:12px;color:var(--mu)" id="uz-s">Aceita .xlsx exportado do Google Sheets</div>
+    </div>
+  </div>
 
-      <div class="card">
-        <div class="card-title">Planilha do Cliente (.xlsx)</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">No Google Sheets: <strong style="color:var(--text)">Arquivo → Fazer download → Microsoft Excel (.xlsx)</strong><br>A planilha deve ter as abas: RISCOS, TRATAMENTO, VULNERABILIDADES, IMPORTAÇÃO. Opcionalmente uma aba HISTÓRICO para os gráficos contínuos.</p>
-        <div class="upload-zone" id="upload-zone">
-          <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFileUpload(this.files[0])" />
-          <div style="font-size:22px;margin-bottom:8px;">↑</div>
-          <div style="font-size:14px;font-weight:500;margin-bottom:4px;" id="upload-title">Arraste o Excel aqui ou clique para selecionar</div>
-          <div style="font-size:12px;color:var(--muted);" id="upload-sub">Aceita .xlsx exportado do Google Sheets</div>
-        </div>
-      </div>
+  <div class="sbar"><div class="sd idle" id="st-dot"></div><span id="st-txt">Aguardando upload</span></div>
 
-      <div class="status-bar">
-        <div class="status-dot idle" id="config-dot"></div>
-        <span id="config-status-text">Aguardando upload da planilha</span>
-      </div>
-    </section>
+  <div class="abar" id="gen-btns" style="display:none">
+    <button class="btn bp" id="btn-grc" onclick="genGRC()">✦ Gerar Relatório GRC</button>
+    <button class="btn bp" id="btn-ops" onclick="genOPS()">✦ Gerar Relatório Operacional</button>
+    <span id="gen-st" style="font-size:12px;color:var(--mu);display:none">Gerando com IA...</span>
+  </div>
+</section>
 
-    <!-- ═══ HISTÓRICO ═══ -->
-    <section class="section" id="section-historico">
-      <div class="section-header"><h2>Dados Históricos</h2><p>Gerencie o histórico mensal para os gráficos contínuos de score e banco de horas.</p></div>
+<!-- ══ 2. EDIT GRC ══ -->
+<section class="pg" id="pg-edit-grc">
+  <div class="ph"><h2>② Editar Relatório GRC</h2><p>Edite os textos no painel esquerdo. O preview atualiza em tempo real à direita.</p></div>
+  <div class="alert ai">Edite qualquer texto, número ou tabela diretamente no Markdown. Quando estiver pronto, clique em "Ver Preview Final" para conferir e depois exportar o PDF.</div>
+  <div class="abar">
+    <button class="btn bp" onclick="go('prev-grc', document.querySelector('[onclick*=prev-grc]'))">Ver Preview Final →</button>
+    <button class="btn bo" onclick="genGRC()">↺ Regerar com IA</button>
+    <button class="btn bg" onclick="copyMD('grc')">Copiar Markdown</button>
+  </div>
+  <div class="editor-wrap" style="min-height:700px">
+    <div class="editor-pane">
+      <div class="editor-header"><span>✏ Markdown — Edite aqui</span><span style="font-size:10px;color:var(--mu)">Edição em tempo real</span></div>
+      <textarea class="editor-ta" id="md-grc" oninput="livePreview('grc')" placeholder="Gere o relatório primeiro clicando em ✦ Gerar Relatório GRC na aba Configuração..."></textarea>
+    </div>
+    <div class="editor-pane">
+      <div class="editor-header"><span>👁 Preview</span></div>
+      <div class="preview-pane" id="prev-grc-inline"></div>
+    </div>
+  </div>
+</section>
 
-      <div class="card">
-        <div class="card-title">Como funciona</div>
-        <div class="alert alert-info" style="margin-bottom:14px;">
-          Após gerar cada relatório, copie o bloco de dados históricos abaixo e cole na aba <strong>HISTÓRICO</strong> da planilha do cliente no Google Sheets. A cada mês, a aplicação lê esse histórico e gera os gráficos de evolução automaticamente.
-        </div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Estrutura da aba HISTÓRICO na planilha:</p>
-        <div class="historico-snippet">Mês	Score ISO	Score NIST	Score LGPD	Score Médio	Horas Contratadas	Horas Executadas	Saldo
-Jan/26	1.47	0	0	1.47	60	60	0
-Fev/26	8.82	0	0	8.82	60	60	0
-Mar/26	11.76	0	0	11.76	60	98	38</div>
-      </div>
+<!-- ══ 3. PREVIEW GRC ══ -->
+<section class="pg" id="pg-prev-grc">
+  <div class="ph"><h2>③ Preview Final — GRC</h2><p>Confira o relatório completo antes de exportar o PDF.</p></div>
+  <div class="abar">
+    <button class="btn br" onclick="exportPDF('doc-grc','grc')">⬇ Exportar PDF</button>
+    <button class="btn bo" onclick="go('edit-grc', document.querySelector('[onclick*=edit-grc]'))">← Voltar e Editar</button>
+    <button class="btn bg" onclick="window.print()">🖨 Imprimir</button>
+  </div>
+  <div id="doc-grc" class="doc"></div>
+</section>
 
-      <div id="historico-snapshot" style="display:none;">
-        <div class="card">
-          <div class="card-title">Dados do Ciclo Atual — Copie para a Planilha</div>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Copie a linha abaixo e cole na próxima linha da aba HISTÓRICO:</p>
-          <div class="historico-snippet" id="historico-line"></div>
-          <button class="btn btn-outline" style="margin-top:10px;" onclick="copyHistoricoLine()">Copiar linha</button>
-        </div>
-      </div>
+<!-- ══ 4. EDIT OPS ══ -->
+<section class="pg" id="pg-edit-ops">
+  <div class="ph"><h2>② Editar Relatório Operacional</h2><p>Edite os textos no painel esquerdo. Preview à direita.</p></div>
+  <div class="alert ai">Edite qualquer texto, número ou dado diretamente no Markdown antes de exportar.</div>
+  <div class="abar">
+    <button class="btn bp" onclick="go('prev-ops', document.querySelector('[onclick*=prev-ops]'))">Ver Preview Final →</button>
+    <button class="btn bo" onclick="genOPS()">↺ Regerar com IA</button>
+    <button class="btn bg" onclick="copyMD('ops')">Copiar Markdown</button>
+  </div>
+  <div class="editor-wrap" style="min-height:700px">
+    <div class="editor-pane">
+      <div class="editor-header"><span>✏ Markdown — Edite aqui</span></div>
+      <textarea class="editor-ta" id="md-ops" oninput="livePreview('ops')" placeholder="Gere o relatório primeiro..."></textarea>
+    </div>
+    <div class="editor-pane">
+      <div class="editor-header"><span>👁 Preview</span></div>
+      <div class="preview-pane" id="prev-ops-inline"></div>
+    </div>
+  </div>
+</section>
 
-      <div id="historico-charts-wrap" style="display:none;flex-direction:column;gap:14px;">
-        <div class="report-block">
-          <div class="report-block-header"><span class="report-block-title">Evolução do Score de Maturidade</span></div>
-          <div class="report-block-body"><canvas id="chart-score" height="160"></canvas></div>
-        </div>
-        <div class="report-block">
-          <div class="report-block-header"><span class="report-block-title">Banco de Horas Acumulado</span></div>
-          <div class="report-block-body"><canvas id="chart-horas" height="160"></canvas></div>
-        </div>
-      </div>
-    </section>
+<!-- ══ 5. PREVIEW OPS ══ -->
+<section class="pg" id="pg-prev-ops">
+  <div class="ph"><h2>③ Preview Final — Operacional</h2><p>Confira o relatório completo antes de exportar.</p></div>
+  <div class="abar">
+    <button class="btn br" onclick="exportPDF('doc-ops','ops')">⬇ Exportar PDF</button>
+    <button class="btn bo" onclick="go('edit-ops', document.querySelector('[onclick*=edit-ops]'))">← Voltar e Editar</button>
+    <button class="btn bg" onclick="window.print()">🖨 Imprimir</button>
+  </div>
+  <div id="doc-ops" class="doc"></div>
+</section>
 
-    <!-- ═══ RELATÓRIO GRC ═══ -->
-    <section class="section" id="section-grc">
-      <div class="section-header"><h2>Executive Risk, Governance & Compliance Report</h2><p>Documento executivo com análise de risco, maturidade e roadmap estratégico.</p></div>
-      <div id="grc-empty" class="alert alert-warn">Carregue uma planilha na aba Configuração.</div>
-      <div id="grc-content" style="display:none;flex-direction:column;gap:14px;">
-        <div class="action-bar">
-          <button class="btn btn-primary" id="btn-grc" onclick="generateGRC()">✦ Gerar Relatório GRC</button>
-          <button class="btn btn-outline" id="btn-gdoc-grc" onclick="exportToGoogleDoc('grc')" disabled>⬆ Exportar para Google Doc</button>
-          <span id="grc-generating" style="font-size:12px;color:var(--muted);display:none;">Gerando com IA...</span>
-        </div>
-        <div id="grc-report-wrap" class="report-wrap"></div>
-      </div>
-    </section>
+<!-- ══ 6. HISTÓRICO ══ -->
+<section class="pg" id="pg-hist">
+  <div class="ph"><h2>Dados Históricos</h2><p>Histórico acumulado para os gráficos contínuos de score e horas.</p></div>
+  <div class="card">
+    <div class="ct">Estrutura da Aba HISTÓRICO na Planilha</div>
+    <div class="alert ai" style="margin-bottom:14px">Após cada relatório, copie a linha gerada abaixo e cole na aba <strong>HISTÓRICO</strong> da planilha. A aplicação lê o histórico completo e gera os gráficos automaticamente.</div>
+    <pre style="background:var(--s2);padding:14px;border-radius:var(--rs);font-size:12px;color:var(--mu);overflow-x:auto">Mês	Score ISO	Score NIST	Score LGPD	Score Médio	H Contratadas	H Executadas	Saldo	Riscos Abertos	Em Andamento	Mitigados	Total
+Jan/26	1.47	0	0	1.47	80	72	-8	13	10	1	24
+Mar/26	11.76	0	0	11.76	80	98	18	9	10	7	26</pre>
+  </div>
+  <div id="hist-snap" style="display:none" class="card">
+    <div class="ct">Linha do Ciclo Atual — Cole na Planilha</div>
+    <pre id="hist-line" style="background:var(--s2);padding:12px;border-radius:var(--rs);font-size:12px;color:var(--ac);overflow-x:auto"></pre>
+    <button class="btn bo" style="margin-top:10px" onclick="cpHistLine()">Copiar linha</button>
+  </div>
+  <div id="hist-charts" style="display:none;flex-direction:column;gap:16px">
+    <div class="card"><div class="ct">Evolução do Score de Maturidade</div><canvas id="ch-score" height="140"></canvas></div>
+    <div class="card"><div class="ct">Banco de Horas — Histórico</div><canvas id="ch-horas" height="140"></canvas></div>
+    <div class="card"><div class="ct">Evolução dos Riscos</div><canvas id="ch-riscos" height="140"></canvas></div>
+  </div>
+</section>
 
-    <!-- ═══ RELATÓRIO OPERACIONAL ═══ -->
-    <section class="section" id="section-ops">
-      <div class="section-header"><h2>Operational Service Delivery & Consumption Report</h2><p>Documento operacional: horas, entregas, consumo e forecast.</p></div>
-      <div id="ops-empty" class="alert alert-warn">Carregue uma planilha na aba Configuração.</div>
-      <div id="ops-content" style="display:none;flex-direction:column;gap:14px;">
-        <div class="action-bar">
-          <button class="btn btn-primary" id="btn-ops" onclick="generateOPS()">✦ Gerar Relatório Operacional</button>
-          <button class="btn btn-outline" id="btn-gdoc-ops" onclick="exportToGoogleDoc('ops')" disabled>⬆ Exportar para Google Doc</button>
-          <span id="ops-generating" style="font-size:12px;color:var(--muted);display:none;">Gerando com IA...</span>
-        </div>
-        <div id="ops-report-wrap" class="report-wrap"></div>
-      </div>
-    </section>
-
-  </main>
+</main>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // STATE
-// ══════════════════════════════════════════
-let sheetData = null;
-let googleToken = null;
-let reportMarkdown = { grc: '', ops: '' };
-let chartInstances = {};
+// ════════════════════════════════════════════════════════
+let SD = null;       // sheetData
+let CH = {};         // chart instances
+let MD = { grc: '', ops: '' }; // markdown content
 
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // NAVIGATION
-// ══════════════════════════════════════════
-function showSection(id, btn) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('section-' + id).classList.add('active');
-  if (btn) btn.classList.add('active');
+// ════════════════════════════════════════════════════════
+function go(id, btn) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nv').forEach(n => n.classList.remove('on'));
+  const pg = document.getElementById('pg-' + id);
+  if (pg) pg.classList.add('on');
+  if (btn) btn.classList.add('on');
+  // Render full preview when navigating to preview pages
+  if (id === 'prev-grc') renderFullDoc('grc');
+  if (id === 'prev-ops') renderFullDoc('ops');
 }
 
-// ══════════════════════════════════════════
-// GOOGLE OAUTH
-// ══════════════════════════════════════════
-function connectGoogle() {
-  const clientId = document.getElementById('google-client-id').value.trim();
-  if (!clientId) { alert('Cole o Google OAuth Client ID primeiro.'); return; }
-  const scopes = encodeURIComponent('https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file');
-  const redirect = encodeURIComponent('https://julianagalvaods.github.io/Taura-Reports');
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirect}&response_type=token&scope=${scopes}`;
-  window.open(url, '_blank', 'width=500,height=600');
-  window.addEventListener('message', e => {
-    if (e.data && e.data.access_token) {
-      googleToken = e.data.access_token;
-      document.getElementById('google-status').textContent = '✓ Conectado';
-      document.getElementById('google-status').classList.add('connected');
-      document.getElementById('btn-gdoc-grc').disabled = false;
-      document.getElementById('btn-gdoc-ops').disabled = false;
-    }
-  });
-}
-
-// Handle OAuth redirect token
-(function() {
-  const hash = window.location.hash;
-  if (hash.includes('access_token')) {
-    const params = new URLSearchParams(hash.substring(1));
-    const token = params.get('access_token');
-    if (token && window.opener) {
-      window.opener.postMessage({ access_token: token }, '*');
-      window.close();
-    }
-  }
-})();
-
-// ══════════════════════════════════════════
-// FILE UPLOAD & PARSING
-// ══════════════════════════════════════════
-const zone = document.getElementById('upload-zone');
-zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]); });
+// ════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ════════════════════════════════════════════════════════
+const uz = document.getElementById('uz');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('dv'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('dv'));
+uz.addEventListener('drop', e => { e.preventDefault(); uz.classList.remove('dv'); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
 
 function getSheet(wb, ...names) {
   for (const n of names) if (wb.Sheets[n]) return XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' });
   return [];
 }
 
-function rowsToObjects(rows) {
+function rows2obj(rows) {
   if (rows.length < 2) return [];
   let hi = 0;
   for (let i = 0; i < Math.min(rows.length, 5); i++) {
     if (rows[i].filter(c => c && c.toString().trim()).length >= 3) { hi = i; break; }
   }
-  const headers = rows[hi];
+  const h = rows[hi];
   return rows.slice(hi + 1).filter(r => r.some(c => c && c.toString().trim())).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h.toString().trim()] = (row[i] !== undefined ? row[i] : '').toString().trim(); });
-    return obj;
+    const o = {};
+    h.forEach((k, i) => { o[k.toString().trim()] = (row[i] !== undefined ? row[i] : '').toString().trim(); });
+    return o;
   });
 }
 
-function parseImportacao(rows) {
+function parseImport(rows) {
   const s = {};
-  rows.forEach(row => {
-    if (!row || !row[0]) return;
-    const k = row[0].toString().trim(), v = (row[1] || '').toString().replace(',', '.').trim();
-    if (['ISO 27001','NIST CSF','LGPD','BACEN'].includes(k) && !isNaN(parseFloat(v))) s[k] = parseFloat(v);
+  rows.forEach(r => {
+    if (!r || !r[0]) return;
+    const k = r[0].toString().trim(), v = (r[1] || '').toString().replace(',', '.').trim();
+    if (['ISO 27001', 'NIST CSF', 'LGPD', 'BACEN'].includes(k) && !isNaN(parseFloat(v))) s[k] = parseFloat(v);
   });
   const vals = Object.values(s).filter(v => v > 0);
-  if (vals.length) s['Média Geral'] = vals.reduce((a,b)=>a+b,0)/vals.length;
+  if (vals.length) s['Média Geral'] = vals.reduce((a, b) => a + b, 0) / vals.length;
   return s;
 }
 
-function parseHistorico(rows) {
+function parseHist(rows) {
   if (!rows.length) return [];
-  const headers = rows[0].map(h => h.toString().trim());
-  return rows.slice(1).filter(r => r[0]).map(row => {
-    const obj = {};
-    headers.forEach((h,i) => { obj[h] = (row[i]||'').toString().trim(); });
-    return obj;
+  const h = rows[0].map(x => x.toString().trim());
+  return rows.slice(1).filter(r => r[0]).map(r => {
+    const o = {};
+    h.forEach((k, i) => { o[k] = (r[i] || '').toString().trim(); });
+    return o;
   });
 }
 
-function handleFileUpload(file) {
+function upload(file) {
   if (!file) return;
-  const dot = document.getElementById('config-dot'), st = document.getElementById('config-status-text');
-  dot.className = 'status-dot loading'; st.textContent = 'Lendo arquivo...';
+  const dot = document.getElementById('st-dot'), st = document.getElementById('st-txt');
+  dot.className = 'sd spin'; st.textContent = 'Lendo arquivo...';
   const reader = new FileReader();
   reader.onload = e => {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array', cellFormula: false });
-      const importacaoRaw = getSheet(wb, 'IMPORTAÇÃO','IMPORTACAO','Importação');
-      const riscosRaw = getSheet(wb, 'RISCOS','Riscos');
-      const tratamentoRaw = getSheet(wb, 'TRATAMENTO','Tratamento');
-      const vulnsRaw = getSheet(wb, 'VULNERABILIDADES','Vulnerabilidades');
-      const historicoRaw = getSheet(wb, 'HISTÓRICO','HISTORICO','Histórico','Historico');
+      const impRaw = getSheet(wb, 'IMPORTAÇÃO', 'IMPORTACAO', 'Importação', 'Importacao');
+      const rRaw = getSheet(wb, 'RISCOS', 'Riscos');
+      const tRaw = getSheet(wb, 'TRATAMENTO', 'Tratamento');
+      const vRaw = getSheet(wb, 'VULNERABILIDADES', 'Vulnerabilidades');
+      const hRaw = getSheet(wb, 'HISTÓRICO', 'HISTORICO', 'Histórico', 'Historico');
 
-      const riscos = rowsToObjects(riscosRaw).filter(r => r['ID do Risco'] && r['ID do Risco'].startsWith('R-'));
-      const tratamento = rowsToObjects(tratamentoRaw).filter(r => r['ID do Risco'] && r['ID do Risco'].startsWith('R-'));
-      const vulnerabilidades = rowsToObjects(vulnsRaw).filter(r => r['ID Vuln'] && r['ID Vuln'].startsWith('V-'));
-      const maturidade = parseImportacao(importacaoRaw);
-      const historico = parseHistorico(historicoRaw);
+      const riscos = rows2obj(rRaw).filter(r => r['ID do Risco'] && r['ID do Risco'].startsWith('R-'));
+      const tratamento = rows2obj(tRaw).filter(r => r['ID do Risco'] && r['ID do Risco'].startsWith('R-'));
+      const vulns = rows2obj(vRaw).filter(r => r['ID Vuln'] && r['ID Vuln'].startsWith('V-'));
+      const mat = parseImport(impRaw);
+      const hist = parseHist(hRaw);
+      const mit = riscos.filter(r => r['Status'] === 'Mitigado').length;
 
-      const mitigados = riscos.filter(r=>r['Status']==='Mitigado').length;
-      sheetData = {
-        riscos, tratamento, vulnerabilidades, maturidade, historico,
-        indicadores: {
-          totalRiscos: riscos.length,
-          criticos: riscos.filter(r=>r['Classificação']==='Crítico').length,
-          altos: riscos.filter(r=>r['Classificação']==='Alto').length,
-          medios: riscos.filter(r=>r['Classificação']==='Médio').length,
-          baixos: riscos.filter(r=>r['Classificação']==='Baixo').length,
-          abertos: riscos.filter(r=>r['Status']==='Aberto').length,
-          emAndamento: riscos.filter(r=>r['Status']==='Em andamento').length,
-          mitigados,
-          bloqueados: riscos.filter(r=>r['Status']==='Bloqueado').length,
-          pctMitigados: riscos.length > 0 ? (mitigados/riscos.length*100) : 0
+      SD = {
+        riscos, tratamento, vulns, mat, hist,
+        ind: {
+          total: riscos.length,
+          criticos: riscos.filter(r => r['Classificação'] === 'Crítico').length,
+          altos: riscos.filter(r => r['Classificação'] === 'Alto').length,
+          medios: riscos.filter(r => r['Classificação'] === 'Médio').length,
+          baixos: riscos.filter(r => r['Classificação'] === 'Baixo').length,
+          abertos: riscos.filter(r => r['Status'] === 'Aberto').length,
+          andamento: riscos.filter(r => r['Status'] === 'Em andamento').length,
+          mitigados: mit,
+          bloqueados: riscos.filter(r => r['Status'] === 'Bloqueado').length,
+          pctMit: riscos.length > 0 ? (mit / riscos.length * 100) : 0
         }
       };
 
-      zone.classList.add('upload-success');
-      document.getElementById('upload-title').textContent = '✓  ' + file.name;
-      document.getElementById('upload-sub').textContent = `${riscos.length} riscos · ${vulnerabilidades.length} vulnerabilidades · ${tratamento.length} ações · ${historico.length} meses de histórico`;
-      dot.className = 'status-dot done';
-      st.textContent = `Planilha carregada — ${riscos.length} riscos, ${vulnerabilidades.length} vulnerabilidades`;
-      document.getElementById('sidebar-status-box').textContent = `${document.getElementById('client-name').value||'Cliente'}\n${riscos.length} riscos · ${vulnerabilidades.length} vulns\n${historico.length} meses de histórico`;
+      uz.classList.add('uz-ok');
+      document.getElementById('uz-t').textContent = '✓  ' + file.name;
+      document.getElementById('uz-s').textContent = `${riscos.length} riscos · ${vulns.length} vulns · ${tratamento.length} ações · ${hist.length} meses histórico`;
+      dot.className = 'sd ok';
+      st.textContent = `Planilha carregada — ${riscos.length} riscos, ${vulns.length} vulnerabilidades`;
+      document.getElementById('gen-btns').style.display = 'flex';
+      document.getElementById('sb-info').textContent = `${document.getElementById('cl-name').value || 'Cliente'}\n${riscos.length} riscos · ${vulns.length} vulns\n${hist.length} meses histórico`;
 
-      ['grc','ops'].forEach(s => {
-        document.getElementById(s+'-empty').style.display = 'none';
-        document.getElementById(s+'-content').style.display = 'flex';
-      });
-
-      updateHistoricoSnapshot();
-      if (historico.length > 0) renderHistoricoCharts();
-    } catch(err) {
-      dot.className = 'status-dot error';
+      updateHistSnap();
+      if (hist.length >= 2) renderHistCharts();
+    } catch (err) {
+      dot.className = 'sd err';
       st.textContent = 'Erro: ' + err.message;
       console.error(err);
     }
@@ -505,635 +533,869 @@ function handleFileUpload(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // HISTÓRICO
-// ══════════════════════════════════════════
-function updateHistoricoSnapshot() {
-  if (!sheetData) return;
-  const { maturidade, indicadores } = sheetData;
-  const mes = document.getElementById('ref-month').value || '?';
-  const hC = document.getElementById('horas-contratadas').value || '0';
-  const hE = document.getElementById('horas-executadas').value || '0';
-  const saldo = (parseFloat(hE)||0) - (parseFloat(hC)||0);
-  const iso = (maturidade['ISO 27001']||0).toFixed(2);
-  const nist = (maturidade['NIST CSF']||0).toFixed(2);
-  const lgpd = (maturidade['LGPD']||0).toFixed(2);
-  const media = (maturidade['Média Geral']||0).toFixed(2);
-  const line = `${mes}\t${iso}\t${nist}\t${lgpd}\t${media}\t${hC}\t${hE}\t${saldo >= 0 ? '+'+saldo : saldo}`;
-  document.getElementById('historico-line').textContent = line;
-  document.getElementById('historico-snapshot').style.display = 'block';
+// ════════════════════════════════════════════════════════
+function updateHistSnap() {
+  if (!SD) return;
+  const mes = document.getElementById('cl-mes').value || '?';
+  const hC = document.getElementById('h-c').value || '0';
+  const hE = document.getElementById('h-e').value || '0';
+  const saldo = (parseFloat(hE) || 0) - (parseFloat(hC) || 0);
+  const iso = (SD.mat['ISO 27001'] || 0).toFixed(2);
+  const nist = (SD.mat['NIST CSF'] || 0).toFixed(2);
+  const lgpd = (SD.mat['LGPD'] || 0).toFixed(2);
+  const media = (SD.mat['Média Geral'] || 0).toFixed(2);
+  const line = `${mes}\t${iso}\t${nist}\t${lgpd}\t${media}\t${hC}\t${hE}\t${saldo >= 0 ? '+' + saldo : saldo}\t${SD.ind.abertos}\t${SD.ind.andamento}\t${SD.ind.mitigados}\t${SD.ind.total}`;
+  document.getElementById('hist-line').textContent = line;
+  document.getElementById('hist-snap').style.display = 'block';
 }
 
-function copyHistoricoLine() {
-  const text = document.getElementById('historico-line').textContent;
-  navigator.clipboard.writeText(text).then(() => alert('Linha copiada! Cole na aba HISTÓRICO da planilha.'));
+function cpHistLine() {
+  navigator.clipboard.writeText(document.getElementById('hist-line').textContent)
+    .then(() => alert('Copiado! Cole na aba HISTÓRICO da planilha.'));
 }
 
-function renderHistoricoCharts() {
-  const { historico } = sheetData;
-  const labels = historico.map(h => h['Mês'] || h['MES'] || '');
-  const scoreMedia = historico.map(h => parseFloat((h['Score Médio']||h['SCORE MEDIO']||'0').replace(',','.')) || 0);
-  const horasC = historico.map(h => parseFloat(h['Horas Contratadas']||'0') || 0);
-  const horasE = historico.map(h => parseFloat(h['Horas Executadas']||'0') || 0);
+function renderHistCharts() {
+  const h = SD.hist;
+  document.getElementById('hist-charts').style.display = 'flex';
+  const labels = h.map(x => x['Mês'] || '');
+  const scoreM = h.map(x => parseFloat((x['Score Médio'] || '0').replace(',', '.')) || 0);
+  const hC = h.map(x => parseFloat(x['H Contratadas'] || x['Horas Contratadas'] || '0') || 0);
+  const hE = h.map(x => parseFloat(x['H Executadas'] || x['Horas Executadas'] || '0') || 0);
+  const abertos = h.map(x => parseInt(x['Riscos Abertos'] || x['Abertos'] || '0') || 0);
+  const andamento = h.map(x => parseInt(x['Em Andamento'] || '0') || 0);
+  const mitigados = h.map(x => parseInt(x['Mitigados'] || '0') || 0);
 
-  document.getElementById('historico-charts-wrap').style.display = 'flex';
-
-  if (chartInstances['score']) chartInstances['score'].destroy();
-  if (chartInstances['horas']) chartInstances['horas'].destroy();
-
-  const chartDefaults = {
+  const base = {
     responsive: true,
     plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } },
     scales: {
-      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { size: 11 } } },
-      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { size: 11 } } }
+      x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#888', font: { size: 11 } } },
+      y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#888', font: { size: 11 } } }
     }
   };
 
-  chartInstances['score'] = new Chart(document.getElementById('chart-score'), {
+  if (CH.score) CH.score.destroy();
+  if (CH.horas) CH.horas.destroy();
+  if (CH.riscos) CH.riscos.destroy();
+
+  CH.score = new Chart(document.getElementById('ch-score'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Score Médio (%)', data: scoreM, borderColor: '#c8f55a', backgroundColor: 'rgba(200,245,90,.1)', fill: true, tension: .35, pointBackgroundColor: '#c8f55a', pointRadius: 5 }] },
+    options: { ...base }
+  });
+  CH.horas = new Chart(document.getElementById('ch-horas'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Contratadas', data: hC, backgroundColor: 'rgba(91,158,245,.5)', borderColor: '#5b9ef5', borderWidth: 1 }, { label: 'Executadas', data: hE, backgroundColor: 'rgba(200,245,90,.5)', borderColor: '#c8f55a', borderWidth: 1 }] },
+    options: { ...base }
+  });
+  CH.riscos = new Chart(document.getElementById('ch-riscos'), {
     type: 'line',
     data: {
       labels,
-      datasets: [{
-        label: 'Score Médio (%)',
-        data: scoreMedia,
-        borderColor: '#c8f55a',
-        backgroundColor: 'rgba(200,245,90,0.1)',
-        fill: true,
-        tension: 0.3,
-        pointBackgroundColor: '#c8f55a'
-      }]
-    },
-    options: { ...chartDefaults }
-  });
-
-  chartInstances['horas'] = new Chart(document.getElementById('chart-horas'), {
-    type: 'bar',
-    data: {
-      labels,
       datasets: [
-        { label: 'Contratadas', data: horasC, backgroundColor: 'rgba(91,158,245,0.5)', borderColor: '#5b9ef5', borderWidth: 1 },
-        { label: 'Executadas', data: horasE, backgroundColor: 'rgba(200,245,90,0.5)', borderColor: '#c8f55a', borderWidth: 1 }
+        { label: 'Abertos', data: abertos, borderColor: '#f5a623', backgroundColor: 'rgba(245,166,35,.1)', fill: false, tension: .3, pointRadius: 4 },
+        { label: 'Em Andamento', data: andamento, borderColor: '#5b9ef5', backgroundColor: 'rgba(91,158,245,.1)', fill: false, tension: .3, pointRadius: 4 },
+        { label: 'Mitigados', data: mitigados, borderColor: '#4cde8a', backgroundColor: 'rgba(76,222,138,.1)', fill: false, tension: .3, pointRadius: 4 }
       ]
     },
-    options: { ...chartDefaults }
+    options: { ...base }
   });
 }
 
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // HELPERS
-// ══════════════════════════════════════════
-const scC = v => v < 30 ? 'red' : v < 60 ? 'amber' : 'green';
-const scBarC = v => v < 30 ? '#ff5e5e' : v < 60 ? '#f5a623' : '#4cde8a';
-const CB = { 'Crítico':'badge-red','Alto':'badge-amber','Médio':'badge-amber','Baixo':'badge-green' };
-const SB = { 'Aberto':'badge-gray','Em andamento':'badge-amber','Mitigado':'badge-green','Bloqueado':'badge-red' };
-const SVB = { 'Crítica':'badge-red','Alta':'badge-amber','Média':'badge-gray','Baixa':'badge-green' };
+// ════════════════════════════════════════════════════════
+const scC = v => v < 30 ? '#e53e3e' : v < 60 ? '#c97118' : '#1e8a4a';
+const scBC = v => v < 30 ? '#dc-b-red' : v < 60 ? 'dc-b-amb' : 'dc-b-grn';
+const CB = { 'Crítico': 'dc-b-red', 'Alto': 'dc-b-amb', 'Médio': 'dc-b-amb', 'Baixo': 'dc-b-mu' };
+const SB = { 'Aberto': 'dc-b-mu', 'Em andamento': 'dc-b-amb', 'Mitigado': 'dc-b-grn', 'Bloqueado': 'dc-b-red' };
+const SVB = { 'Crítica': 'dc-b-red', 'Alta': 'dc-b-amb', 'Média': 'dc-b-mu', 'Baixa': 'dc-b-grn' };
 
-function mdToHtml(text) {
-  if (!text) return '';
-  return text
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>')
-    .replace(/^- (.+)$/gm,'<li>$1</li>')
-    .split('\n\n').map(p => {
-      if (!p.trim()) return '';
-      if (p.includes('<li>')) return `<ul>${p}</ul>`;
-      if (p.startsWith('<')) return p;
-      return `<p>${p.replace(/\n/g,'<br>')}</p>`;
-    }).join('');
+function badge(txt, cls) { return `<span class="dc-badge ${cls || 'dc-b-mu'}">${txt}</span>`; }
+function pct(a, b) { return b > 0 ? ((a / b) * 100).toFixed(0) : 0; }
+
+// ════════════════════════════════════════════════════════
+// LIVE PREVIEW (markdown → simple HTML for editor pane)
+// ════════════════════════════════════════════════════════
+function livePreview(type) {
+  const md = document.getElementById('md-' + type).value;
+  const prev = document.getElementById('prev-' + type + '-inline');
+  prev.innerHTML = md2html_simple(md);
 }
 
-function rBlock(title, body) {
-  return `<div class="report-block">
-    <div class="report-block-header"><span class="report-block-title">${title}</span><button class="copy-btn" onclick="copyBlock(this)">copiar</button></div>
-    <div class="report-block-body">${body}</div>
-  </div>`;
+function md2html_simple(md) {
+  if (!md) return '<p style="color:#666;font-style:italic">Digite ou gere o relatório para ver o preview...</p>';
+  let html = md
+    .replace(/^#{3} (.+)$/gm, '<h3 style="font-size:14px;font-weight:700;color:#c8f55a;margin:16px 0 6px">$1</h3>')
+    .replace(/^#{2} (.+)$/gm, '<h2 style="font-size:16px;font-weight:700;color:#f0f0f0;margin:20px 0 8px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 style="font-size:20px;font-weight:800;color:#c8f55a;margin:24px 0 10px">$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#f0f0f0">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li style="margin:4px 0 4px 18px;color:#ccc">$1</li>')
+    .replace(/\n\n/g, '</p><p style="color:#ccc;font-size:13px;line-height:1.7;margin-bottom:10px">')
+    .replace(/\n/g, '<br>');
+  return `<p style="color:#ccc;font-size:13px;line-height:1.7;margin-bottom:10px">${html}</p>`;
 }
 
-function copyBlock(btn) {
-  const t = btn.closest('.report-block').querySelector('.report-block-body').innerText;
-  navigator.clipboard.writeText(t).then(()=>{ btn.textContent='copiado!'; setTimeout(()=>btn.textContent='copiar',1500); });
-}
-
-// ══════════════════════════════════════════
-// VISUAL BLOCKS
-// ══════════════════════════════════════════
-function buildQuadroResumo() {
-  const { indicadores, maturidade } = sheetData;
-  const media = (maturidade['Média Geral']||0).toFixed(1);
-  return `<div class="metrics-8">
-    <div class="metric-card"><div class="metric-label">Total de Riscos</div><div class="metric-value accent">${indicadores.totalRiscos}</div></div>
-    <div class="metric-card"><div class="metric-label">Críticos</div><div class="metric-value red">${indicadores.criticos}</div></div>
-    <div class="metric-card"><div class="metric-label">Altos</div><div class="metric-value amber">${indicadores.altos}</div></div>
-    <div class="metric-card"><div class="metric-label">Taxa de Mitigação</div><div class="metric-value green">${indicadores.pctMitigados.toFixed(1)}%</div></div>
-    <div class="metric-card"><div class="metric-label">Em Andamento</div><div class="metric-value blue">${indicadores.emAndamento}</div></div>
-    <div class="metric-card"><div class="metric-label">Abertos</div><div class="metric-value amber">${indicadores.abertos}</div></div>
-    <div class="metric-card"><div class="metric-label">Bloqueados</div><div class="metric-value red">${indicadores.bloqueados}</div></div>
-    <div class="metric-card"><div class="metric-label">Score Médio</div><div class="metric-value ${scC(parseFloat(media))}">${media}%</div></div>
-  </div>`;
-}
-
-function buildMaturidade() {
-  const { maturidade } = sheetData;
-  return ['ISO 27001','NIST CSF','LGPD','Média Geral'].filter(p=>maturidade[p]!==undefined).map(p => {
-    const v = maturidade[p];
-    return `<div class="pilar-card">
-      <div class="pilar-name">${p}</div>
-      <div class="pilar-score ${scC(v)}">${v.toFixed(1)}%</div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(v,100)}%;background:${scBarC(v)}"></div></div>
-    </div>`;
-  }).join('');
-}
-
-function buildDonut() {
-  const { indicadores } = sheetData;
-  const total = indicadores.totalRiscos || 1;
-  const items = [
-    {l:'Mitigados',v:indicadores.mitigados,c:'#4cde8a'},
-    {l:'Em andamento',v:indicadores.emAndamento,c:'#5b9ef5'},
-    {l:'Abertos',v:indicadores.abertos,c:'#f5a623'},
-    {l:'Bloqueados',v:indicadores.bloqueados,c:'#ff5e5e'}
-  ];
-  let offset = 0;
-  const r = 38, cx = 48, cy = 48, circ = 2*Math.PI*r;
-  const paths = items.map(it => {
-    const dash = (it.v/total)*circ;
-    const s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${it.c}" stroke-width="16" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
-    offset += dash; return s;
-  }).join('');
-  const legend = items.map(it=>`<div class="donut-item"><div class="donut-dot" style="background:${it.c}"></div><span>${it.l}: <strong>${it.v}</strong> (${Math.round(it.v/total*100)}%)</span></div>`).join('');
-  return `<div class="donut-wrap"><svg width="96" height="96" viewBox="0 0 96 96">${paths}</svg><div class="donut-legend">${legend}</div></div>`;
-}
-
-function buildTop5() {
-  const { riscos, tratamento } = sheetData;
-  const pri = {'Crítico':4,'Alto':3,'Médio':2,'Baixo':1};
-  const stPri = {'Bloqueado':4,'Aberto':3,'Em andamento':2,'Mitigado':1};
-  const top5 = riscos.filter(r=>r['Status']!=='Mitigado')
-    .sort((a,b)=>{const d=(pri[b['Classificação']]||0)-(pri[a['Classificação']]||0);return d||((stPri[b['Status']]||0)-(stPri[a['Status']]||0));})
-    .slice(0,5);
-  const rows = top5.map(r=>{
-    const an = tratamento.find(t=>t['ID do Risco']===r['ID do Risco']&&t['ANOTAÇÕES']&&t['ANOTAÇÕES'].length>15);
-    const gargalo = an ? `<div class="sub">⚠ ${an['ANOTAÇÕES'].substring(0,120)}${an['ANOTAÇÕES'].length>120?'...':''}</div>` : '';
-    return `<tr><td class="mono">${r['ID do Risco']}</td><td class="risk-name">${r['Risco (Resumo)']||r['Risco']||''}${gargalo}</td><td><span class="badge ${CB[r['Classificação']]||'badge-gray'}">${r['Classificação']||''}</span></td><td><span class="badge ${SB[r['Status']]||'badge-gray'}">${r['Status']||''}</span></td></tr>`;
-  }).join('');
-  return `<div class="table-wrap"><table class="rtable"><thead><tr><th>ID</th><th>Risco</th><th>Classificação</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <p style="font-size:12px;color:var(--muted);margin-top:10px;">Lista completa disponível no <strong style="color:var(--accent)">ANEXO A</strong>.</p>`;
-}
-
-function buildExposicao() {
-  const { riscos } = sheetData;
-  const ativos = riscos.filter(r=>r['Status']!=='Mitigado');
-  const now = new Date();
-  const rows = ativos.map(r => {
-    const criado = r['Data de Criação'] || r['Criado em'] || '';
-    let expLabel = '', expColor = '';
-    if (criado) {
-      const d = new Date(criado.split('/').reverse().join('-'));
-      const dias = Math.floor((now-d)/(1000*60*60*24));
-      if (dias > 60) { expLabel = `🔴 +60d sem atualização`; expColor = '#ff5e5e'; }
-      else if (dias > 30) { expLabel = `🟡 30–60d`; expColor = '#f5a623'; }
-      else { expLabel = `🟢 Recente`; expColor = '#4cde8a'; }
-    } else { expLabel = '—'; expColor = 'var(--muted)'; }
-    return `<tr><td class="risk-name">${r['Risco (Resumo)']||r['Risco']||''}</td><td><span class="badge ${CB[r['Classificação']]||'badge-gray'}">${r['Classificação']||''}</span></td><td><span class="badge ${SB[r['Status']]||'badge-gray'}">${r['Status']||''}</span></td><td>${criado||'—'}</td><td style="font-size:12px;color:${expColor}">${expLabel}</td></tr>`;
-  }).join('');
-  return `<div class="table-wrap"><table class="rtable"><thead><tr><th>Risco</th><th>Criticidade</th><th>Status</th><th>Criado em</th><th>Exposição</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-
-function buildGargalos() {
-  const { tratamento, riscos } = sheetData;
-  const com = tratamento.filter(t=>t['ANOTAÇÕES']&&t['ANOTAÇÕES'].length>30&&t['Status']!=='Concluído');
-  if (!com.length) return '<p style="color:var(--muted);font-size:13px;">Nenhum bloqueio identificado neste ciclo.</p>';
-  return com.slice(0,6).map(t=>{
-    const r = riscos.find(x=>x['ID do Risco']===t['ID do Risco']);
-    const an = t['ANOTAÇÕES'];
-    const feito = an.match(/O QUE FOI FEITO[:\s]*(.*?)(?=COMO FOI FEITO|O QUE PRECISA|$)/si)?.[1]?.trim()||'';
-    const precisa = an.match(/O QUE PRECISA SER FEITO AGORA[:\s]*(.*?)$/si)?.[1]?.trim()||an.substring(0,250);
-    return `<div class="gargalo-card">
-      <div class="gargalo-id">${t['ID do Risco']} · ${r?r['Classificação']:''}</div>
-      <div class="gargalo-name">${t['Plano de Ação']||''}</div>
-      ${feito?`<div class="gargalo-situation"><strong>⚠ Gargalo:</strong> ${feito.substring(0,200)}</div>`:''}
-      <div class="gargalo-action"><strong>→ Ação necessária:</strong> ${precisa.substring(0,300)}</div>
-    </div>`;
-  }).join('');
-}
-
-function buildAtividades() {
-  const { tratamento, riscos } = sheetData;
-  const conc = tratamento.filter(t=>t['Status']==='Concluído');
-  if (!conc.length) return '<p style="color:var(--muted);font-size:13px;">Nenhuma atividade concluída registrada.</p>';
-  const rows = conc.map(t=>{
-    const r = riscos.find(x=>x['ID do Risco']===t['ID do Risco']);
-    const rName = r ? `${r['Risco (Resumo)']||r['Risco']||''}` : (t['ID do Risco']||'');
-    const rClass = r ? `<span class="badge ${CB[r['Classificação']]||'badge-gray'}" style="display:block;margin-top:3px">${r['Classificação']||''}</span>` : '';
-    const rStatus = r ? `<span class="badge ${SB[r['Status']]||'badge-gray'}" style="display:block;margin-top:3px">${r['Status']||''}</span>` : '';
-    return `<tr>
-      <td class="mono">${t['ID do Risco']}</td>
-      <td><div style="font-size:12px">${rName}</div>${rClass}</td>
-      <td>${rStatus}</td>
-      <td>${t['Plano de Ação']||''}</td>
-      <td style="font-size:12px">${t['Responsável']||''}</td>
-      <td><span class="badge badge-green">Concluído</span></td>
-    </tr>`;
-  }).join('');
-  return `<div class="table-wrap"><table class="rtable"><thead><tr><th>ID</th><th>Risco Tratado</th><th>Status do Risco</th><th>Atividade Executada</th><th>Responsável</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-
-function buildProximosPassosTable() {
-  const { tratamento, riscos } = sheetData;
-  const prox = [...tratamento.filter(t=>t['Status']==='Em andamento'), ...tratamento.filter(t=>t['Status']==='Aberto')].slice(0,15);
-  if (!prox.length) return '<p style="color:var(--muted);font-size:13px;">Nenhum próximo passo registrado.</p>';
-  const rows = prox.map(t=>{
-    const r = riscos.find(x=>x['ID do Risco']===t['ID do Risco']);
-    const pri = r ? r['Classificação'] : '';
-    return `<tr><td class="mono">${t['ID do Risco']}</td><td class="risk-name">${r?r['Risco (Resumo)']||r['Risco']||'':''}</td><td>${t['Plano de Ação']||''}</td><td style="font-size:12px">${t['Responsável']||''}</td><td>${t['Prazo']||''}</td><td><span class="badge ${CB[pri]||'badge-gray'}">${pri}</span></td></tr>`;
-  }).join('');
-  return `<div class="table-wrap"><table class="rtable"><thead><tr><th>ID</th><th>Risco</th><th>Atividade Planejada</th><th>Responsável</th><th>Prazo</th><th>Prioridade</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-
-function buildVulns() {
-  const { vulnerabilidades } = sheetData;
-  const ab = vulnerabilidades.filter(v=>v['Status']!=='Corrigida');
-  if (!ab.length) return '<p style="color:var(--muted);font-size:13px;">Nenhuma vulnerabilidade aberta.</p>';
-  const rows = ab.map(v=>`<tr><td class="mono">${v['ID Vuln']}</td><td>${v['Título']||''}</td><td><span class="badge ${SVB[v['Sev. Atual']||v['Severidade']]||'badge-gray'}">${v['Sev. Atual']||v['Severidade']||''}</span></td><td style="font-size:11px;color:var(--muted)">${v['Tipo']||''}</td><td style="font-size:11px;color:var(--muted)">${v['Risco Vinculado']||''}</td></tr>`).join('');
-  return `<div class="table-wrap"><table class="rtable"><thead><tr><th>ID</th><th>Vulnerabilidade</th><th>Severidade</th><th>Tipo</th><th>Risco Vinculado</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-
-function buildBancoHoras() {
-  const { historico } = sheetData;
-  const hC = document.getElementById('horas-contratadas').value || '—';
-  const hE = document.getElementById('horas-executadas').value || '—';
-  const saldo = (parseFloat(hE)||0) - (parseFloat(hC)||0);
-  const saldoStr = isNaN(saldo) ? '—' : (saldo > 0 ? `+${saldo}h` : `${saldo}h`);
-  const saldoColor = saldo > 0 ? 'amber' : saldo < 0 ? 'green' : 'muted';
-
-  let historicoRows = '';
-  if (historico.length) {
-    historicoRows = historico.map(h=>{
-      const s = parseFloat(h['Saldo']||'0');
-      const sC = s > 0 ? 'amber' : s < 0 ? 'green' : 'muted';
-      return `<tr><td>${h['Mês']||''}</td><td>${h['Horas Contratadas']||''}h</td><td><strong>${h['Horas Executadas']||''}h</strong></td><td style="color:var(--${sC})">${s>0?'+':''}${h['Saldo']||0}h</td></tr>`;
-    }).join('');
-  }
-
-  return `<div class="metrics-8" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
-    <div class="metric-card"><div class="metric-label">Contratadas/mês</div><div class="metric-value blue">${hC}h</div></div>
-    <div class="metric-card"><div class="metric-label">Executadas</div><div class="metric-value accent">${hE}h</div></div>
-    <div class="metric-card"><div class="metric-label">Saldo</div><div class="metric-value ${saldoColor}">${saldoStr}</div></div>
-  </div>
-  ${historicoRows ? `<div class="table-wrap"><table class="rtable"><thead><tr><th>Período</th><th>Contrato Mensal</th><th>Horas Executadas</th><th>Saldo do Mês</th></tr></thead><tbody>${historicoRows}</tbody></table></div>` : ''}`;
-}
-
-function buildAnexoA() {
-  const { riscos } = sheetData;
-  const rows = riscos.map(r=>`<tr><td class="mono">${r['ID do Risco']}</td><td class="risk-name">${r['Risco (Resumo)']||r['Risco']||''}</td><td><span class="badge ${CB[r['Classificação']]||'badge-gray'}">${r['Classificação']||''}</span></td><td><span class="badge ${SB[r['Status']]||'badge-gray'}">${r['Status']||''}</span></td><td style="font-size:11px;color:var(--muted)">${r['Pilar de Origem']||''}</td><td style="font-size:11px;color:var(--muted)">${r['Responsável']||''}</td></tr>`).join('');
-  return `<div class="report-block">
-    <div class="anexo-header"><span class="anexo-tag">Anexo A</span><span style="font-size:13px;font-weight:500;">Lista Completa de Riscos</span><button class="copy-btn" style="margin-left:auto" onclick="copyBlock(this)">copiar</button></div>
-    <div class="report-block-body"><div class="table-wrap"><table class="rtable"><thead><tr><th>ID</th><th>Risco</th><th>Classificação</th><th>Status</th><th>Pilar</th><th>Responsável</th></tr></thead><tbody>${rows}</tbody></table></div></div>
-  </div>`;
-}
-
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // AI CALL
-// ══════════════════════════════════════════
-async function callClaude(key, prompt) {
+// ════════════════════════════════════════════════════════
+async function callAI(prompt) {
+  const key = document.getElementById('ak').value.trim();
+  if (!key) throw new Error('Informe a Anthropic API Key na aba Configuração.');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-    body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:4000, system: TAURA_SYSTEM, messages:[{role:'user',content:prompt}] })
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 4000, system: SYSTEM, messages: [{ role: 'user', content: prompt }] })
   });
-  if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||res.statusText); }
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.statusText); }
   const d = await res.json();
-  return d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+  return d.content.filter(b => b.type === 'text').map(b => b.text).join('');
 }
 
-function parseAISections(text) {
-  const s = {}; let cur=null, buf=[];
-  function flush(){if(cur)s[cur]=buf.join('\n').trim();buf=[];}
-  text.split('\n').forEach(line=>{
-    const h=line.match(/^#{1,3} (.+)/);
-    if(h){flush();cur=h[1].trim();}
-    else buf.push(line);
-  });
-  flush(); return s;
-}
+// ════════════════════════════════════════════════════════
+// SYSTEM PROMPT
+// ════════════════════════════════════════════════════════
+const SYSTEM = `Você é analista sênior de GRC da Taura Security. Escreve relatórios executivos mensais.
 
-// ══════════════════════════════════════════
-// SYSTEM PROMPT — SKILL DE COMUNICAÇÃO
-// ══════════════════════════════════════════
-const TAURA_SYSTEM = `Você é um analista sênior de cibersegurança da Taura Security. Escreve relatórios executivos mensais de GRC para clientes. Seu texto deve soar como o de um especialista que conhece profundamente o cliente e tem domínio técnico, sem precisar afirmar isso.
-
-REGRAS ABSOLUTAS DE ESCRITA — NUNCA VIOLE:
-1. NUNCA use travessão (—). Substitua por ponto e vírgula, ponto, ou reescreva a frase.
-2. NUNCA use: "não é sobre X, é sobre Y", "em um mundo cada vez mais", "no cenário atual", "mais do que nunca", "a verdade é que", "quando falamos de", "é importante destacar", "vale ressaltar".
-3. NUNCA quebre frases em múltiplas linhas para criar efeito dramático. Cada parágrafo é um bloco de raciocínio completo e fechado.
-4. NUNCA escreva listas disfarçadas de texto corrido. Se for lista, use marcadores. Se for prosa, mantenha como parágrafo coeso.
-5. NUNCA use frases curtas sequenciais como recurso estilístico.
+REGRAS ABSOLUTAS DE ESCRITA:
+1. NUNCA use travessão (—). Nunca. Use ponto e vírgula ou reescreva a frase.
+2. NUNCA use: "não é sobre X é sobre Y", "em um mundo cada vez mais", "no cenário atual", "mais do que nunca", "é importante destacar", "vale ressaltar", "quando falamos de", "não à toa".
+3. NUNCA quebre frases em linhas separadas para efeito. Cada parágrafo é um bloco de raciocínio completo.
+4. NUNCA repita dados que já aparecem em tabelas. O texto analisa, não descreve.
+5. NUNCA escreva frases curtas sequenciais. O texto flui com progressão lógica.
 6. Sempre conecte risco técnico a impacto de negócio: produto, operação, finanças, continuidade, reputação.
-7. Cite IDs de risco quando relevante (ex: o risco R-N02 representa...).
-8. Cada seção deve ter progressão lógica: o que está acontecendo, onde está o risco, por que importa para o negócio, o que fazer.
-9. Tom de advisory estratégico: parceiro que conhece o negócio, não auditor que aponta falhas.
-10. Máximo de clareza com mínimo de palavras. Sem repetição de ideias entre seções.
+7. Tom de advisory estratégico: parceiro que conhece o negócio, não auditor que aponta falhas.
+8. Cite IDs de risco quando relevante. Seja específico.
+9. Use linguagem executiva: decisão, priorização, impacto, velocidade, risco.
+10. Máximo de clareza com mínimo de palavras.
 
-PADRÃO DE REFERÊNCIA — escreva com a densidade e o tom deste parágrafo real da Taura:
-"Março expôs uma realidade que o programa de segurança vinha mapeando há meses: riscos classificados como Críticos, sem atualização por mais de 60 dias, representam exposições reais. O incidente de desvio financeiro por vínculo indevido de carteira foi o momento em que um risco documentado desde dezembro de 2025 se materializou. A Taura respondeu com agilidade, conteve o ataque e implantou monitoramento contínuo. O episódio deixa claro que o ritmo de mitigação precisa ser acelerado, especialmente nos riscos de alta criticidade que seguem estagnados."`;
+PADRÃO DE TOM — escreva com esta densidade:
+"Março expôs uma realidade que o programa de segurança vinha mapeando há meses: riscos classificados como Críticos, sem atualização por mais de 60 dias, representam exposições reais. O incidente de desvio financeiro foi o momento em que um risco documentado se materializou. A Taura respondeu com agilidade e implantou monitoramento contínuo. O episódio deixa claro que o ritmo de mitigação precisa ser acelerado."
 
-// ══════════════════════════════════════════
-// GRC REPORT
-// ══════════════════════════════════════════
-async function generateGRC() {
-  const key = document.getElementById('anthropic-key').value.trim();
-  if (!key) { alert('Informe a Anthropic API Key.'); return; }
-  if (!sheetData) { alert('Faça upload da planilha primeiro.'); return; }
+EXECUTIVE SUMMARY — regra específica:
+- 300 a 400 palavras total
+- Três blocos: SITUAÇÃO GERAL (1 parágrafo) + DESTAQUES DO CICLO (máx 4 pontos concisos) + AGENDA DECISÓRIA (o que precisa de decisão da liderança)
+- Não lista tarefas. Conecta situação com direção.
+- NÃO repete dados das tabelas. Sintetiza em linguagem de decisão.`;
 
-  const btn=document.getElementById('btn-grc'),gen=document.getElementById('grc-generating'),wrap=document.getElementById('grc-report-wrap');
-  btn.disabled=true; gen.style.display='inline';
-  wrap.innerHTML=`<div class="status-bar"><div class="status-dot loading"></div><span>Gerando textos analíticos com IA... (30–45 segundos)</span></div>`;
+// ════════════════════════════════════════════════════════
+// DATA BUILDERS (for markdown generation)
+// ════════════════════════════════════════════════════════
+function buildDataCtx() {
+  const { ind, mat, riscos, tratamento, vulns, hist } = SD;
+  const client = document.getElementById('cl-name').value || 'Cliente';
+  const mes = document.getElementById('cl-mes').value || '';
+  const ctx = document.getElementById('ctx').value || '';
+  const hC = document.getElementById('h-c').value || '?';
+  const hE = document.getElementById('h-e').value || '?';
+  const ant = parseFloat(document.getElementById('sc-ant').value) || 0;
+  const media = mat['Média Geral'] || 0;
 
-  const client=document.getElementById('client-name').value||'Cliente';
-  const mes=document.getElementById('ref-month').value||'';
-  const ctx=document.getElementById('client-context').value||'';
+  const crit = riscos.filter(r => r['Classificação'] === 'Crítico' && r['Status'] !== 'Mitigado');
+  const altos = riscos.filter(r => r['Classificação'] === 'Alto' && r['Status'] !== 'Mitigado');
+  const bloq = tratamento.filter(t => t['ANOTAÇÕES'] && t['ANOTAÇÕES'].length > 30 && t['Status'] !== 'Concluído');
+  const conc = tratamento.filter(t => t['Status'] === 'Concluído');
+  const prox = tratamento.filter(t => ['Em andamento', 'Aberto'].includes(t['Status']));
+  const pilaresStr = Object.entries(mat).filter(([k]) => k !== 'Média Geral').map(([k, v]) => `${k}: ${v.toFixed(1)}%`).join(' | ');
+
+  return { client, mes, ctx, hC, hE, ant, media, ind, mat, riscos, tratamento, vulns, hist, crit, altos, bloq, conc, prox, pilaresStr };
+}
+
+// ════════════════════════════════════════════════════════
+// GEN GRC
+// ════════════════════════════════════════════════════════
+async function genGRC() {
+  if (!SD) { alert('Faça upload da planilha primeiro.'); return; }
+  const btn = document.getElementById('btn-grc'), gst = document.getElementById('gen-st');
+  btn.disabled = true; gst.style.display = 'inline'; gst.textContent = 'Gerando GRC com IA...';
 
   try {
-    const aiText = await callClaude(key, buildGRCPrompt(client, mes, ctx));
-    const secs = parseAISections(aiText);
-    reportMarkdown.grc = aiText;
-    renderGRC(wrap, secs, client, mes);
-    updateHistoricoSnapshot();
-    document.getElementById('btn-gdoc-grc').disabled = !googleToken;
-  } catch(e) {
-    wrap.innerHTML=`<div class="alert alert-danger">Erro: ${e.message}</div>`;
-  } finally { btn.disabled=false; gen.style.display='none'; }
-}
-
-function renderGRC(wrap, secs, client, mes) {
-  const { indicadores, maturidade } = sheetData;
-  const media = (maturidade['Média Geral']||0).toFixed(1);
-  wrap.innerHTML = `
-    <div class="report-cover">
-      <div class="report-cover-tag">Executive Risk, Governance &amp; Compliance Report</div>
-      <div class="report-cover-title">${client}</div>
-      <div class="report-cover-sub">Ciclo de referência: ${mes}</div>
-      <div class="report-cover-meta">
-        <div><div class="cover-metric-label">Riscos mapeados</div><div class="cover-metric-value">${indicadores.totalRiscos}</div></div>
-        <div><div class="cover-metric-label">Riscos críticos</div><div class="cover-metric-value" style="color:var(--danger)">${indicadores.criticos}</div></div>
-        <div><div class="cover-metric-label">Taxa de mitigação</div><div class="cover-metric-value" style="color:var(--success)">${indicadores.pctMitigados.toFixed(1)}%</div></div>
-        <div><div class="cover-metric-label">Score médio</div><div class="cover-metric-value" style="color:var(--accent)">${media}%</div></div>
-      </div>
-    </div>
-
-    ${rBlock('Quadro-Resumo Executivo', buildQuadroResumo())}
-
-    ${secs['APRESENTAÇÃO']||secs['Apresentação'] ? rBlock('Apresentação', `<div class="prose">${mdToHtml(secs['APRESENTAÇÃO']||secs['Apresentação'])}</div>`) : ''}
-
-    ${rBlock('Score de Maturidade por Pilar', `<div class="pilares-row">${buildMaturidade()}</div>`)}
-
-    ${rBlock('Distribuição de Riscos por Status', buildDonut())}
-
-    ${secs['GESTÃO DE RISCOS']||secs['Gestão de Riscos'] ? rBlock('Gestão de Riscos', `<div class="prose">${mdToHtml(secs['GESTÃO DE RISCOS']||secs['Gestão de Riscos'])}</div>`) : ''}
-
-    ${rBlock('Top 5 Riscos Prioritários', buildTop5())}
-
-    ${rBlock('Tempo de Exposição dos Riscos Ativos', buildExposicao())}
-
-    ${rBlock('Pontos de Atenção e Bloqueios', buildGargalos())}
-
-    ${secs['PRÓXIMOS PASSOS ESTRATÉGICOS']||secs['Próximos Passos Estratégicos'] ? rBlock('Próximos Passos — Diretrizes Estratégicas', `<div class="prose">${mdToHtml(secs['PRÓXIMOS PASSOS ESTRATÉGICOS']||secs['Próximos Passos Estratégicos'])}</div>`) : ''}
-
-    ${rBlock('Próximos Passos — Atividades Planejadas', buildProximosPassosTable())}
-
-    ${rBlock('Vulnerabilidades em Aberto', buildVulns())}
-
-    ${secs['CONSIDERAÇÕES TAURA']||secs['Considerações Taura'] ? rBlock('Considerações Taura', `<div class="prose">${mdToHtml(secs['CONSIDERAÇÕES TAURA']||secs['Considerações Taura'])}</div>`) : ''}
-
-    ${buildAnexoA()}
-  `;
-}
-
-// ══════════════════════════════════════════
-// OPS REPORT
-// ══════════════════════════════════════════
-async function generateOPS() {
-  const key = document.getElementById('anthropic-key').value.trim();
-  if (!key) { alert('Informe a Anthropic API Key.'); return; }
-  if (!sheetData) { alert('Faça upload da planilha primeiro.'); return; }
-
-  const btn=document.getElementById('btn-ops'),gen=document.getElementById('ops-generating'),wrap=document.getElementById('ops-report-wrap');
-  btn.disabled=true; gen.style.display='inline';
-  wrap.innerHTML=`<div class="status-bar"><div class="status-dot loading"></div><span>Gerando textos analíticos com IA...</span></div>`;
-
-  const client=document.getElementById('client-name').value||'Cliente';
-  const mes=document.getElementById('ref-month').value||'';
-  const ctx=document.getElementById('client-context').value||'';
-
-  try {
-    const aiText = await callClaude(key, buildOPSPrompt(client, mes, ctx));
-    const secs = parseAISections(aiText);
-    reportMarkdown.ops = aiText;
-    renderOPS(wrap, secs, client, mes);
-    document.getElementById('btn-gdoc-ops').disabled = !googleToken;
-  } catch(e) {
-    wrap.innerHTML=`<div class="alert alert-danger">Erro: ${e.message}</div>`;
-  } finally { btn.disabled=false; gen.style.display='none'; }
-}
-
-function renderOPS(wrap, secs, client, mes) {
-  const { tratamento } = sheetData;
-  const conc = tratamento.filter(t=>t['Status']==='Concluído').length;
-  const hC = document.getElementById('horas-contratadas').value||'—';
-  const hE = document.getElementById('horas-executadas').value||'—';
-  const saldo = (parseFloat(hE)||0)-(parseFloat(hC)||0);
-
-  wrap.innerHTML = `
-    <div class="report-cover">
-      <div class="report-cover-tag">Operational Service Delivery &amp; Consumption Report</div>
-      <div class="report-cover-title">${client}</div>
-      <div class="report-cover-sub">Ciclo de referência: ${mes}</div>
-      <div class="report-cover-meta">
-        <div><div class="cover-metric-label">Contratadas/mês</div><div class="cover-metric-value">${hC}h</div></div>
-        <div><div class="cover-metric-label">Executadas</div><div class="cover-metric-value" style="color:var(--accent)">${hE}h</div></div>
-        <div><div class="cover-metric-label">Saldo</div><div class="cover-metric-value" style="color:${saldo>0?'var(--warn)':saldo<0?'var(--success)':'var(--muted)'}">${saldo>=0?'+':''}${saldo}h</div></div>
-        <div><div class="cover-metric-label">Atividades concluídas</div><div class="cover-metric-value" style="color:var(--success)">${conc}</div></div>
-      </div>
-    </div>
-
-    ${secs['RESUMO EXECUTIVO DO CICLO']||secs['Resumo Executivo do Ciclo'] ? rBlock('Resumo Executivo do Ciclo', `<div class="prose">${mdToHtml(secs['RESUMO EXECUTIVO DO CICLO']||secs['Resumo Executivo do Ciclo'])}</div>`) : ''}
-
-    ${rBlock('Banco de Horas', buildBancoHoras())}
-
-    ${secs['CONSUMO DE HORAS']||secs['Consumo de Horas'] ? rBlock('Consumo de Horas — Análise', `<div class="prose">${mdToHtml(secs['CONSUMO DE HORAS']||secs['Consumo de Horas'])}</div>`) : ''}
-
-    ${rBlock('Principais Evoluções — Atividades Executadas no Ciclo', buildAtividades())}
-
-    ${secs['BREAKDOWN DE ESFORÇO POR FRENTE']||secs['Breakdown de Esforço por Frente'] ? rBlock('Breakdown de Esforço por Frente', `<div class="prose">${mdToHtml(secs['BREAKDOWN DE ESFORÇO POR FRENTE']||secs['Breakdown de Esforço por Frente'])}</div>`) : ''}
-
-    ${rBlock('Próximos Passos', buildProximosPassosTable())}
-
-    ${secs['FORECAST OPERACIONAL']||secs['Forecast Operacional'] ? rBlock('Forecast Operacional — Próximo Ciclo', `<div class="prose">${mdToHtml(secs['FORECAST OPERACIONAL']||secs['Forecast Operacional'])}</div>`) : ''}
-  `;
-}
-
-// ══════════════════════════════════════════
-// PROMPTS
-// ══════════════════════════════════════════
-function buildGRCPrompt(client, mes, ctx) {
-  const { indicadores, maturidade, riscos, tratamento, vulnerabilidades } = sheetData;
-  const criticos = riscos.filter(r=>r['Classificação']==='Crítico'&&r['Status']!=='Mitigado');
-  const altos = riscos.filter(r=>r['Classificação']==='Alto'&&r['Status']!=='Mitigado');
-  const bloqueios = tratamento.filter(t=>t['ANOTAÇÕES']&&t['ANOTAÇÕES'].length>30&&t['Status']!=='Concluído').slice(0,5);
-  const pilaresStr = Object.entries(maturidade).filter(([k])=>k!=='Média Geral').map(([k,v])=>`${k}: ${v.toFixed(1)}%`).join(' | ');
-
-  return `Escreva os textos analíticos do Executive GRC Report para ${client}, ciclo ${mes}.
-
-CONTEXTO DO CLIENTE: ${ctx||'Não informado'}
-
-DADOS DO CICLO:
-Total riscos: ${indicadores.totalRiscos} | Críticos: ${indicadores.criticos} | Altos: ${indicadores.altos} | Médios: ${indicadores.medios} | Baixos: ${indicadores.baixos}
-Abertos: ${indicadores.abertos} | Em andamento: ${indicadores.emAndamento} | Mitigados: ${indicadores.mitigados} | Bloqueados: ${indicadores.bloqueados}
-Taxa de mitigação: ${indicadores.pctMitigados.toFixed(1)}%
-Maturidade: ${pilaresStr} | Média: ${(maturidade['Média Geral']||0).toFixed(1)}%
-
-RISCOS CRÍTICOS E ALTOS ATIVOS:
-${criticos.concat(altos).map(r=>`[${r['ID do Risco']}] ${r['Risco (Resumo)']||r['Risco']} — Status: ${r['Status']} — Impacto: ${r['Impacto Executivo']||''}`).join('\n')}
-
-BLOQUEIOS E ANOTAÇÕES:
-${bloqueios.map(t=>`[${t['ID do Risco']}] ${t['Plano de Ação']}: ${t['ANOTAÇÕES'].substring(0,350)}`).join('\n\n')}
-
-VULNERABILIDADES: ${vulnerabilidades.length} total | ${vulnerabilidades.filter(v=>v['Status']!=='Corrigida').length} abertas | Críticas: ${vulnerabilidades.filter(v=>(v['Sev. Atual']||v['Severidade'])==='Crítica').length}
-
-Escreva SOMENTE os textos analíticos. Tabelas e gráficos são gerados automaticamente pela aplicação.
-
-## APRESENTAÇÃO
-3-4 parágrafos. Situe o cliente no momento do programa. Mencione os 2-3 eixos principais do ciclo. Conecte com o score de maturidade e o que ele representa para o negócio.
-
-## GESTÃO DE RISCOS
-Análise do panorama. Conecte com impacto de negócio. Mencione riscos críticos pelo ID. Destaque o que avançou e o que permanece exposto.
-
-## PRÓXIMOS PASSOS ESTRATÉGICOS
-3-5 prioridades do próximo ciclo com justificativa de negócio. Decisões, não lista de tarefas.
-
-## CONSIDERAÇÕES TAURA
-Fechamento executivo. 2-3 decisões específicas que a liderança precisa tomar. Contextualiza urgência e impacto. Tom de parceiro estratégico.`;
-}
-
-function buildOPSPrompt(client, mes, ctx) {
-  const { tratamento } = sheetData;
-  const conc = tratamento.filter(t=>t['Status']==='Concluído');
-  const hC = document.getElementById('horas-contratadas').value||'?';
-  const hE = document.getElementById('horas-executadas').value||'?';
-
-  return `Escreva os textos analíticos do Operational Report para ${client}, ciclo ${mes}.
-
-CONTEXTO: ${ctx||'Não informado'}
-
-DADOS OPERACIONAIS:
-Horas contratadas/mês: ${hC} | Horas executadas: ${hE} | Saldo: ${(parseFloat(hE)||0)-(parseFloat(hC)||0)}h
-Atividades concluídas: ${conc.length}
-Principais atividades: ${conc.slice(0,15).map(t=>`• [${t['ID do Risco']}] ${t['Plano de Ação']} (Resp: ${t['Responsável']||'N/A'})`).join('\n')}
-
-Escreva SOMENTE os textos analíticos. As tabelas são geradas automaticamente.
-
-## RESUMO EXECUTIVO DO CICLO
-2-3 parágrafos contextualizando o ciclo operacional e as principais frentes.
-
-## CONSUMO DE HORAS
-Análise do consumo de ${hC}h contratadas vs ${hE}h executadas. Contextualize com o valor entregue. Se houver desvio, explique o contexto.
-
-## BREAKDOWN DE ESFORÇO POR FRENTE
-Agrupe as atividades por categoria e explique o valor entregue em cada frente.
-
-## FORECAST OPERACIONAL
-Frentes previstas para o próximo ciclo com prioridade e justificativa operacional.`;
-}
-
-// ══════════════════════════════════════════
-// GOOGLE DOCS EXPORT
-// ══════════════════════════════════════════
-async function exportToGoogleDoc(type) {
-  if (!googleToken) { alert('Conecte-se ao Google primeiro na aba Configuração.'); return; }
-  const wrap = document.getElementById(type+'-report-wrap');
-  if (!wrap || !wrap.innerHTML.trim()) { alert('Gere o relatório primeiro.'); return; }
-
-  const client = document.getElementById('client-name').value || 'Cliente';
-  const mes = document.getElementById('ref-month').value || '';
-  const typeLabel = type === 'grc' ? 'GRC Report' : 'Operational Report';
-  const title = `${typeLabel} — ${client} — ${mes}`;
-
-  const btn = document.getElementById('btn-gdoc-'+type);
-  btn.disabled = true; btn.textContent = '⏳ Exportando...';
-
-  try {
-    // Create Google Doc
-    const createRes = await fetch('https://docs.googleapis.com/v1/documents', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title })
-    });
-    if (!createRes.ok) throw new Error('Erro ao criar documento: ' + createRes.status);
-    const doc = await createRes.json();
-    const docId = doc.documentId;
-
-    // Build content from report
-    const content = buildGoogleDocContent(type);
-
-    // Insert content via batchUpdate
-    const updateRes = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: content })
-    });
-    if (!updateRes.ok) throw new Error('Erro ao inserir conteúdo: ' + updateRes.status);
-
-    const docUrl = `https://docs.google.com/document/d/${docId}/edit`;
-    btn.textContent = '✓ Abrir Google Doc';
-    btn.onclick = () => window.open(docUrl, '_blank');
-    btn.disabled = false;
-    alert(`Google Doc criado com sucesso!\n\nLink: ${docUrl}\n\nPróximos passos:\n1. Abra o documento\n2. Arquivo → Download → PDF\n3. Adicione senha no ilovepdf.com\n4. Envie ao cliente`);
-  } catch(e) {
-    alert('Erro na exportação: ' + e.message);
-    btn.disabled = false; btn.textContent = '⬆ Exportar para Google Doc';
+    const d = buildDataCtx();
+    const aiText = await callAI(buildGRCPrompt(d));
+    // Merge AI text with structured data tables into full markdown
+    MD.grc = buildGRCMarkdown(d, aiText);
+    document.getElementById('md-grc').value = MD.grc;
+    livePreview('grc');
+    go('edit-grc', document.querySelector('.nv[onclick*="edit-grc"]'));
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false; gst.style.display = 'none';
   }
 }
 
-function buildGoogleDocContent(type) {
-  const wrap = document.getElementById(type+'-report-wrap');
-  const requests = [];
-  let index = 1;
+function buildGRCPrompt(d) {
+  const { client, mes, ctx, hC, hE, ant, media, ind, mat, crit, altos, bloq, conc, pilaresStr } = d;
+  return `Escreva os textos analíticos do GRC Report para ${client}, ciclo ${mes}.
 
-  // Extract text content from rendered report
-  const blocks = wrap.querySelectorAll('.report-block, .report-cover');
-  const lines = [];
+CONTEXTO: ${ctx || 'Não informado'}
 
-  blocks.forEach(block => {
-    const title = block.querySelector('.report-block-title, .report-cover-tag');
-    if (title) lines.push({ text: title.innerText, style: 'HEADING_1' });
-    const body = block.querySelector('.report-block-body, .prose');
-    if (body) {
-      const text = body.innerText;
-      text.split('\n').filter(l=>l.trim()).forEach(l => lines.push({ text: l, style: 'NORMAL_TEXT' }));
-    }
-    lines.push({ text: '\n', style: 'NORMAL_TEXT' });
-  });
+DADOS DO CICLO:
+Score: ${media.toFixed(2)}% (anterior: ${ant}% | evolução: ${(media - ant) >= 0 ? '+' : ''}${(media - ant).toFixed(2)}%)
+Pilares: ${pilaresStr}
+Riscos: ${ind.total} total | ${ind.criticos} críticos | ${ind.altos} altos | ${ind.medios} médios | ${ind.baixos} baixos
+Status: ${ind.abertos} abertos | ${ind.andamento} em andamento | ${ind.mitigados} mitigados | ${ind.bloqueados} bloqueados
+Taxa mitigação: ${ind.pctMit.toFixed(1)}%
+Riscos críticos/altos ativos: ${crit.concat(altos).slice(0, 10).map(r => `[${r['ID do Risco']}] ${r['Risco (Resumo)'] || r['Risco']} — ${r['Status']} — Impacto: ${r['Impacto Executivo'] || ''}`).join('\n')}
+Bloqueios: ${bloq.slice(0, 5).map(t => `[${t['ID do Risco']}] ${t['Plano de Ação']}: ${t['ANOTAÇÕES'].substring(0, 250)}`).join('\n')}
+Atividades concluídas: ${conc.length}
 
-  // Build requests
-  lines.forEach(line => {
-    if (!line.text.trim()) return;
-    requests.push({
-      insertText: { location: { index }, text: line.text + '\n' }
+ESCREVA APENAS OS TEXTOS ANALÍTICOS a seguir. Tabelas e dados são gerados automaticamente.
+
+## EXECUTIVE SUMMARY
+[300-400 palavras. Três blocos: SITUAÇÃO GERAL + DESTAQUES DO CICLO + AGENDA DECISÓRIA. Linguagem executiva de decisão.]
+
+## VISÃO DA EXPOSIÇÃO ATUAL
+[2-3 parágrafos. Mapa de riscos em linguagem de negócio. Impacto financeiro, regulatório, reputacional. Cite IDs críticos.]
+
+## ANÁLISE ESTRATÉGICA DO CICLO
+[Advisory interpretativo. O que os dados significam para o programa. Padrões, tendências, riscos sistêmicos. 3-4 parágrafos.]
+
+## PRINCIPAIS EVOLUÇÕES DO CICLO
+[2 parágrafos. O que avançou e qual o valor de negócio dessas entregas. NÃO liste as atividades, isso aparece na tabela.]
+
+## PONTOS DE ATENÇÃO E BLOQUEIOS
+[Para cada bloqueio relevante: o que está travado, impacto, ação necessária da organização. Direto e específico.]
+
+## ROADMAP DO PRÓXIMO CICLO
+[3-5 prioridades estratégicas numeradas com justificativa de negócio. Decisões, não lista de tarefas.]
+
+## CONSIDERAÇÕES EXECUTIVAS DA TAURA
+[Fechamento estratégico. 2-3 decisões que a liderança precisa tomar. Tom de parceiro. 300-400 palavras.]`;
+}
+
+function buildGRCMarkdown(d, ai) {
+  const { client, mes, ind, mat, riscos, tratamento, vulns, hist, crit, altos, ant, media } = d;
+  const autor = document.getElementById('autor').value || '';
+  const coautor = document.getElementById('coautor').value || '';
+  const revisor = document.getElementById('revisor').value || '';
+  const today = new Date().toLocaleDateString('pt-BR');
+  const pilarLines = ['ISO 27001', 'NIST CSF', 'LGPD', 'Média Geral']
+    .filter(p => mat[p] !== undefined)
+    .map(p => `| ${p} | ${mat[p].toFixed(2)}% |`)
+    .join('\n');
+
+  const top5 = riscos.filter(r => r['Status'] !== 'Mitigado')
+    .sort((a, b) => (['Crítico', 'Alto', 'Médio', 'Baixo'].indexOf(a['Classificação']) - ['Crítico', 'Alto', 'Médio', 'Baixo'].indexOf(b['Classificação'])))
+    .slice(0, 5);
+
+  const ativos = riscos.filter(r => r['Status'] !== 'Mitigado');
+  const conc = tratamento.filter(t => t['Status'] === 'Concluído');
+  const prox = tratamento.filter(t => ['Em andamento', 'Aberto'].includes(t['Status'])).slice(0, 12);
+  const bloq = tratamento.filter(t => t['ANOTAÇÕES'] && t['ANOTAÇÕES'].length > 30 && t['Status'] !== 'Concluído');
+
+  const histTable = hist.length ? `
+| Período | Score ISO | NIST | LGPD | Score Médio | Abertos | Em Andamento | Mitigados | Total |
+|---------|-----------|------|------|-------------|---------|--------------|-----------|-------|
+${hist.map(h => `| ${h['Mês'] || ''} | ${h['Score ISO'] || '-'}% | ${h['Score NIST'] || '-'}% | ${h['Score LGPD'] || '-'}% | **${h['Score Médio'] || '-'}%** | ${h['Riscos Abertos'] || h['Abertos'] || '-'} | ${h['Em Andamento'] || '-'} | ${h['Mitigados'] || '-'} | ${h['Total'] || '-'} |`).join('\n')}` : '';
+
+  const parseSecs = txt => {
+    const s = {}; let cur = null, buf = [];
+    function flush() { if (cur) s[cur] = buf.join('\n').trim(); buf = []; }
+    txt.split('\n').forEach(l => {
+      const h = l.match(/^#{2} (.+)/);
+      if (h) { flush(); cur = h[1].trim(); } else buf.push(l);
     });
-    if (line.style === 'HEADING_1') {
-      requests.push({
-        updateParagraphStyle: {
-          range: { startIndex: index, endIndex: index + line.text.length + 1 },
-          paragraphStyle: { namedStyleType: 'HEADING_1' },
-          fields: 'namedStyleType'
-        }
-      });
+    flush(); return s;
+  };
+  const secs = parseSecs(ai);
+  const S = k => secs[k] || '';
+
+  return `# REPORT EXECUTIVO DE GRC
+## ${client} · ${mes}
+
+**Autor:** ${autor} | **Co-autor:** ${coautor} | **Revisor:** ${revisor} | **Data:** ${today}
+
+---
+
+## SUMÁRIO
+
+1. Executive Summary
+2. Visão da Exposição Atual
+3. Evolução da Maturidade
+4. Indicadores Executivos
+5. Análise Estratégica do Ciclo
+6. Principais Evoluções do Ciclo
+7. Pontos de Atenção e Bloqueios
+8. Roadmap do Próximo Ciclo
+9. Considerações Executivas da Taura
+10. Anexo A — Detalhamento de Riscos
+
+---
+
+## EXECUTIVE SUMMARY
+
+${S('EXECUTIVE SUMMARY')}
+
+---
+
+## VISÃO DA EXPOSIÇÃO ATUAL
+
+${S('VISÃO DA EXPOSIÇÃO ATUAL')}
+
+### Mapa de Riscos Prioritários
+
+| # | Risco | Domínio | Criticidade | Status |
+|---|-------|---------|-------------|--------|
+${top5.map((r, i) => `| ${String(i + 1).padStart(2, '0')} | ${r['Risco (Resumo)'] || r['Risco'] || ''} | ${r['Pilar de Origem'] || ''} | ${r['Classificação'] || ''} | ${r['Status'] || ''} |`).join('\n')}
+
+> Lista completa com detalhamento técnico no **ANEXO A**.
+
+---
+
+## EVOLUÇÃO DA MATURIDADE
+
+### Score Atual
+
+**${media.toFixed(2)}%** (anterior: ${ant}% · evolução: ${(media - ant) >= 0 ? '▲ +' : '▼ '}${(media - ant).toFixed(2)}%)
+
+### Scores por Pilar
+
+| Framework | Score Atual |
+|-----------|-------------|
+${pilarLines}
+
+### Histórico de Evolução
+
+${histTable || '*Adicione a aba HISTÓRICO na planilha para ver a evolução dos meses anteriores.*'}
+
+---
+
+## INDICADORES EXECUTIVOS
+
+| Métrica | Valor | Observação |
+|---------|-------|------------|
+| Total de Riscos | ${ind.total} | Todos os riscos mapeados no programa |
+| Riscos Críticos | ${ind.criticos} | Exigem ação imediata |
+| Riscos Altos | ${ind.altos} | Monitoramento ativo |
+| Taxa de Mitigação | ${ind.pctMit.toFixed(1)}% | ${ind.mitigados} de ${ind.total} riscos mitigados |
+| Riscos Abertos | ${ind.abertos} | Sem plano de ação ativo |
+| Em Andamento | ${ind.andamento} | Com plano de mitigação em execução |
+| Bloqueados | ${ind.bloqueados} | Aguardando ação da organização |
+| Vulnerabilidades Abertas | ${vulns.filter(v => v['Status'] !== 'Corrigida').length} | ${vulns.filter(v => (v['Sev. Atual'] || v['Severidade']) === 'Crítica').length} críticas |
+
+---
+
+## ANÁLISE ESTRATÉGICA DO CICLO
+
+${S('ANÁLISE ESTRATÉGICA DO CICLO')}
+
+### Tempo de Exposição dos Riscos Ativos
+
+| Risco | Criticidade | Status | Criado em | Exposição |
+|-------|-------------|--------|-----------|-----------|
+${ativos.map(r => {
+  const criado = r['Data de Criação'] || r['Criado em'] || '-';
+  let exp = '-';
+  if (criado && criado !== '-') {
+    try {
+      const parts = criado.includes('/') ? criado.split('/').reverse() : criado.split('-');
+      const d = new Date(parts.join('-'));
+      const dias = Math.floor((new Date() - d) / (1000 * 60 * 60 * 24));
+      exp = dias > 60 ? '🔴 +60d' : dias > 30 ? '🟡 30-60d' : '🟢 Recente';
+    } catch (e) { exp = '-'; }
+  }
+  return `| ${r['Risco (Resumo)'] || r['Risco'] || ''} | ${r['Classificação'] || ''} | ${r['Status'] || ''} | ${criado} | ${exp} |`;
+}).join('\n')}
+
+---
+
+## PRINCIPAIS EVOLUÇÕES DO CICLO
+
+${S('PRINCIPAIS EVOLUÇÕES DO CICLO')}
+
+### Atividades Concluídas
+
+| Risco Tratado | Atividade Executada | Responsável | Evidência |
+|---------------|--------------------|-----------|----|
+${conc.map(t => {
+  const r = riscos.find(x => x['ID do Risco'] === t['ID do Risco']);
+  return `| **${r ? (r['Risco (Resumo)'] || r['Risco'] || '') : t['ID do Risco']}** | ${t['Plano de Ação'] || ''} | ${t['Responsável'] || ''} | ${t['Evidência'] || ''} |`;
+}).join('\n')}
+
+---
+
+## PONTOS DE ATENÇÃO E BLOQUEIOS
+
+${S('PONTOS DE ATENÇÃO E BLOQUEIOS')}
+
+${bloq.slice(0, 6).map(t => {
+  const r = riscos.find(x => x['ID do Risco'] === t['ID do Risco']);
+  const an = t['ANOTAÇÕES'];
+  const precisa = an.match(/O QUE PRECISA SER FEITO AGORA[:\s]*(.*?)$/si)?.[1]?.trim() || an.substring(0, 250);
+  return `**${t['Plano de Ação'] || ''}** *(${t['ID do Risco']} · ${r ? r['Classificação'] || '' : ''})*\n→ ${precisa}`;
+}).join('\n\n')}
+
+---
+
+## ROADMAP DO PRÓXIMO CICLO
+
+${S('ROADMAP DO PRÓXIMO CICLO')}
+
+### Atividades Planejadas
+
+| Risco | Atividade Planejada | Responsável | Prazo | Prioridade |
+|-------|---------------------|-------------|-------|------------|
+${prox.map(t => {
+  const r = riscos.find(x => x['ID do Risco'] === t['ID do Risco']);
+  return `| **${r ? (r['Risco (Resumo)'] || r['Risco'] || '') : t['ID do Risco']}** | ${t['Plano de Ação'] || ''} | ${t['Responsável'] || ''} | ${t['Prazo'] || ''} | ${r ? r['Classificação'] || '' : ''} |`;
+}).join('\n')}
+
+---
+
+## CONSIDERAÇÕES EXECUTIVAS DA TAURA
+
+${S('CONSIDERAÇÕES EXECUTIVAS DA TAURA')}
+
+---
+
+## ANEXO A — DETALHAMENTO DE RISCOS
+
+| ID | Risco | Classificação | Status | Pilar | Responsável |
+|----|-------|---------------|--------|-------|-------------|
+${riscos.map(r => `| ${r['ID do Risco']} | ${r['Risco (Resumo)'] || r['Risco'] || ''} | ${r['Classificação'] || ''} | ${r['Status'] || ''} | ${r['Pilar de Origem'] || ''} | ${r['Responsável'] || ''} |`).join('\n')}
+`;
+}
+
+// ════════════════════════════════════════════════════════
+// GEN OPS
+// ════════════════════════════════════════════════════════
+async function genOPS() {
+  if (!SD) { alert('Faça upload da planilha primeiro.'); return; }
+  const btn = document.getElementById('btn-ops'), gst = document.getElementById('gen-st');
+  btn.disabled = true; gst.style.display = 'inline'; gst.textContent = 'Gerando Operacional com IA...';
+
+  try {
+    const d = buildDataCtx();
+    const aiText = await callAI(buildOPSPrompt(d));
+    MD.ops = buildOPSMarkdown(d, aiText);
+    document.getElementById('md-ops').value = MD.ops;
+    livePreview('ops');
+    go('edit-ops', document.querySelector('.nv[onclick*="edit-ops"]'));
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false; gst.style.display = 'none';
+  }
+}
+
+function buildOPSPrompt(d) {
+  const { client, mes, ctx, hC, hE, ind, conc, prox, hist } = d;
+  const saldo = (parseFloat(hE) || 0) - (parseFloat(hC) || 0);
+  const aprov = hC !== '?' ? ((parseFloat(hE) / parseFloat(hC)) * 100).toFixed(0) : '?';
+  return `Escreva os textos analíticos do Relatório Operacional para ${client}, ciclo ${mes}.
+
+CONTEXTO: ${ctx || 'Não informado'}
+
+DADOS:
+Horas contratadas: ${hC}h | Executadas: ${hE}h | Saldo: ${saldo >= 0 ? '+' : ''}${saldo}h | Aproveitamento: ${aprov}%
+Atividades concluídas: ${conc.length}
+Principais atividades: ${conc.slice(0, 12).map(t => `• ${t['Plano de Ação']} (${t['Responsável'] || 'N/A'})`).join('\n')}
+Próximas atividades: ${prox.slice(0, 8).map(t => `• ${t['Plano de Ação']} (${t['Responsável'] || ''})`).join('\n')}
+${hist.length ? 'Histórico disponível: ' + hist.length + ' ciclos' : ''}
+
+ESCREVA APENAS OS TEXTOS ANALÍTICOS:
+
+## RESUMO EXECUTIVO DO CICLO
+[300-400 palavras. Situação geral + destaques + observações e pontos de atenção. Tom executivo.]
+
+## ANÁLISE DO CONSUMO DE HORAS
+[2 parágrafos. Contextualize ${hC}h contratadas vs ${hE}h executadas. Explique o consumo com o valor entregue. Se saldo relevante, justifique.]
+
+## BREAKDOWN DE ESFORÇO POR FRENTE
+[Analise as frentes de trabalho do ciclo — governança, conformidade, reuniões, resposta a incidentes, awareness, projetos. Para cada frente relevante: o que foi feito e qual valor gerou.]
+
+## JUSTIFICATIVA DE CONSUMO
+[Se houver desvio do previsto — incidentes, demandas urgentes, escopo ampliado — documente formalmente. Se consumo dentro do esperado, confirme e contextualize.]
+
+## FORECAST DO PRÓXIMO CICLO
+[O que está planejado. Estimativa de esforço por frente. Alertas de capacidade se relevante.]`;
+}
+
+function buildOPSMarkdown(d, ai) {
+  const { client, mes, ind, riscos, tratamento, hist, conc, prox } = d;
+  const autor = document.getElementById('autor').value || '';
+  const coautor = document.getElementById('coautor').value || '';
+  const revisor = document.getElementById('revisor').value || '';
+  const hC = document.getElementById('h-c').value || '?';
+  const hE = document.getElementById('h-e').value || '?';
+  const vigencia = document.getElementById('vigencia').value || '';
+  const today = new Date().toLocaleDateString('pt-BR');
+  const saldo = (parseFloat(hE) || 0) - (parseFloat(hC) || 0);
+  const aprov = hC !== '?' ? ((parseFloat(hE) / parseFloat(hC)) * 100).toFixed(0) : '?';
+
+  const histHorasTable = hist.length ? `
+| Ciclo | Contratadas | Consumidas | Saldo | Aproveit. | Status |
+|-------|-------------|------------|-------|-----------|--------|
+${hist.map(h => {
+  const hc = parseFloat(h['H Contratadas'] || h['Horas Contratadas'] || '0') || 0;
+  const he = parseFloat(h['H Executadas'] || h['Horas Executadas'] || '0') || 0;
+  const s = he - hc;
+  const ap = hc > 0 ? ((he / hc) * 100).toFixed(0) : '?';
+  return `| ${h['Mês'] || ''} | ${hc}h | ${he}h | ${s >= 0 ? '+' : ''}${s}h | ${ap}% | ✓ |`;
+}).join('\n')}` : '';
+
+  const parseSecs = txt => {
+    const s = {}; let cur = null, buf = [];
+    function flush() { if (cur) s[cur] = buf.join('\n').trim(); buf = []; }
+    txt.split('\n').forEach(l => {
+      const h = l.match(/^#{2} (.+)/);
+      if (h) { flush(); cur = h[1].trim(); } else buf.push(l);
+    });
+    flush(); return s;
+  };
+  const secs = parseSecs(ai);
+  const S = k => secs[k] || '';
+
+  return `# RELATÓRIO DE ENTREGA OPERACIONAL
+## ${client} · ${mes}
+
+**Autor:** ${autor} | **Co-autor:** ${coautor} | **Revisor:** ${revisor} | **Data:** ${today}
+
+---
+
+## SUMÁRIO
+
+1. Resumo Executivo do Ciclo
+2. Gestão do Banco de Horas
+3. Análise do Consumo de Horas
+4. Principais Entregas do Ciclo
+5. Breakdown de Esforço por Frente
+6. Justificativa de Consumo
+7. Próximas Atividades Planejadas
+8. Forecast do Próximo Ciclo
+
+---
+
+## RESUMO EXECUTIVO DO CICLO
+
+${S('RESUMO EXECUTIVO DO CICLO')}
+
+### Saúde do Contrato — Indicadores do Ciclo
+
+| Indicador | Resultado | Meta | Status |
+|-----------|-----------|------|--------|
+| Aproveitamento do banco de horas | ${aprov}% | ≥ 70% | ${parseInt(aprov) >= 70 ? '✓ DENTRO DO LIMITE' : '⚠ ABAIXO DA META'} |
+| Entregas concluídas no ciclo | ${conc.length} atividades | — | ✓ |
+| Horas excedentes | ${saldo < 0 ? Math.abs(saldo) + 'h' : '0h'} | = 0 | ${saldo < 0 ? '⚠ ESTOURO' : '✓ SEM EXCEDENTE'} |
+| Saldo disponível | ${saldo >= 0 ? '+' + saldo : 0}h | — | — |
+${vigencia ? `| Vigência contratual | ${vigencia} | — | — |` : ''}
+
+---
+
+## GESTÃO DO BANCO DE HORAS
+
+### Consumo do Ciclo — ${mes}
+
+| Métrica | Valor | Observação |
+|---------|-------|------------|
+| Horas Contratadas no Ciclo | ${hC}h | Banco mensal estabelecido em contrato |
+| Horas Efetivamente Consumidas | ${hE}h | Registradas e validadas no ciclo |
+| Saldo Disponível | ${saldo >= 0 ? '+' + saldo : saldo}h | ${saldo >= 0 ? 'Carry-over disponível para o próximo ciclo' : 'Estouro — horas excedentes consumidas'} |
+| Taxa de Aproveitamento | ${aprov}% | Faixa ideal: 70%–95% |
+| Horas Excedentes | ${saldo < 0 ? Math.abs(saldo) + 'h' : '0h'} | ${saldo < 0 ? 'Estouro registrado' : 'Nenhum estouro no ciclo'} |
+
+${histHorasTable ? `### Histórico de Consumo\n${histHorasTable}` : '*Adicione a aba HISTÓRICO na planilha para ver o histórico de consumo.*'}
+
+---
+
+## ANÁLISE DO CONSUMO DE HORAS
+
+${S('ANÁLISE DO CONSUMO DE HORAS')}
+
+---
+
+## PRINCIPAIS ENTREGAS DO CICLO
+
+| # | Risco Tratado | Atividade / Entrega | Responsável | Status |
+|---|---------------|---------------------|-------------|--------|
+${conc.map((t, i) => {
+  const r = riscos.find(x => x['ID do Risco'] === t['ID do Risco']);
+  return `| ${String(i + 1).padStart(2, '0')} | **${r ? (r['Risco (Resumo)'] || r['Risco'] || '') : t['ID do Risco']}** | ${t['Plano de Ação'] || ''} | ${t['Responsável'] || ''} | ✓ |`;
+}).join('\n')}
+
+---
+
+## BREAKDOWN DE ESFORÇO POR FRENTE
+
+${S('BREAKDOWN DE ESFORÇO POR FRENTE')}
+
+---
+
+## JUSTIFICATIVA DE CONSUMO
+
+${S('JUSTIFICATIVA DE CONSUMO')}
+
+---
+
+## PRÓXIMAS ATIVIDADES PLANEJADAS
+
+| # | Risco | Atividade Planejada | Responsável | Prazo | Prioridade |
+|---|-------|---------------------|-------------|-------|------------|
+${prox.map((t, i) => {
+  const r = riscos.find(x => x['ID do Risco'] === t['ID do Risco']);
+  return `| ${String(i + 1).padStart(2, '0')} | **${r ? (r['Risco (Resumo)'] || r['Risco'] || '') : t['ID do Risco']}** | ${t['Plano de Ação'] || ''} | ${t['Responsável'] || ''} | ${t['Prazo'] || ''} | ${r ? r['Classificação'] || '' : ''} |`;
+}).join('\n')}
+
+---
+
+## FORECAST DO PRÓXIMO CICLO
+
+${S('FORECAST DO PRÓXIMO CICLO')}
+`;
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER FULL DOCUMENT (for preview pages)
+// ════════════════════════════════════════════════════════
+function renderFullDoc(type) {
+  const md = document.getElementById('md-' + type)?.value || '';
+  const docEl = document.getElementById('doc-' + type);
+  if (!docEl) return;
+  if (!md.trim()) {
+    docEl.innerHTML = '<div style="padding:60px;text-align:center;color:#888">Gere e edite o relatório primeiro.</div>';
+    return;
+  }
+  docEl.innerHTML = md2docHTML(md, type);
+  // Render charts in document after insert
+  setTimeout(() => renderDocCharts(type), 200);
+}
+
+function md2docHTML(md, type) {
+  const client = document.getElementById('cl-name').value || 'Cliente';
+  const mes = document.getElementById('cl-mes').value || '';
+  const autor = document.getElementById('autor').value || '';
+  const coautor = document.getElementById('coautor').value || '';
+  const revisor = document.getElementById('revisor').value || '';
+  const today = new Date().toLocaleDateString('pt-BR');
+  const typeLabel = type === 'grc' ? 'Executive Risk, Governance & Compliance Report' : 'Relatório de Entrega Operacional';
+
+  // Cover
+  const cover = `<div class="dc-cover">
+    <div>
+      <div class="dc-tagline">TAURA SECURITY</div>
+      <div class="dc-type">${typeLabel}</div>
+      <div class="dc-client">${client}</div>
+      <div class="dc-period">${mes}</div>
+    </div>
+    <div class="dc-meta">
+      ${autor ? `<div class="dc-meta-item"><div class="dc-meta-label">Autor</div><div class="dc-meta-val">${autor}</div></div>` : ''}
+      ${coautor ? `<div class="dc-meta-item"><div class="dc-meta-label">Co-Autor</div><div class="dc-meta-val">${coautor}</div></div>` : ''}
+      ${revisor ? `<div class="dc-meta-item"><div class="dc-meta-label">Revisor</div><div class="dc-meta-val">${revisor}</div></div>` : ''}
+      <div class="dc-meta-item"><div class="dc-meta-label">Data</div><div class="dc-meta-val">${today}</div></div>
+      <div class="dc-meta-item"><div class="dc-meta-label">Classificação</div><div class="dc-meta-val">Confidencial</div></div>
+    </div>
+  </div>`;
+
+  // Parse markdown into sections
+  const sections = [];
+  let curTitle = null, curTag = '', buf = [];
+  const sectionTags = {
+    'SUMÁRIO': 'Sumário',
+    'EXECUTIVE SUMMARY': '01 · Executive Summary',
+    'RESUMO EXECUTIVO': '01 · Resumo Executivo',
+    'VISÃO DA EXPOSIÇÃO': '02 · Exposição Atual',
+    'EVOLUÇÃO DA MATURIDADE': '03 · Maturidade',
+    'INDICADORES EXECUTIVOS': '04 · Indicadores',
+    'ANÁLISE ESTRATÉGICA': '05 · Análise Estratégica',
+    'PRINCIPAIS EVOLUÇÕES': '06 · Evoluções do Ciclo',
+    'PONTOS DE ATENÇÃO': '07 · Pontos de Atenção',
+    'ROADMAP': '08 · Roadmap',
+    'CONSIDERAÇÕES EXECUTIVAS': '09 · Considerações Taura',
+    'ANEXO A': '10 · Anexo Técnico',
+    'GESTÃO DO BANCO': '02 · Banco de Horas',
+    'ANÁLISE DO CONSUMO': '03 · Consumo',
+    'PRINCIPAIS ENTREGAS': '04 · Entregas',
+    'BREAKDOWN': '05 · Breakdown',
+    'JUSTIFICATIVA': '06 · Justificativa',
+    'PRÓXIMAS ATIVIDADES': '07 · Próximos Passos',
+    'FORECAST': '08 · Forecast',
+  };
+
+  function flush() {
+    if (curTitle) sections.push({ title: curTitle, tag: curTag, content: buf.join('\n').trim() });
+    buf = [];
+  }
+
+  md.split('\n').forEach(line => {
+    const h1 = line.match(/^# (.+)/);
+    const h2 = line.match(/^## (.+)/);
+    if (h1 || (h2 && !curTitle)) { /* skip doc title line */ return; }
+    if (h2) {
+      flush();
+      curTitle = h2[1].trim();
+      const key = Object.keys(sectionTags).find(k => curTitle.toUpperCase().includes(k));
+      curTag = key ? sectionTags[key] : '';
+    } else { buf.push(line); }
+  });
+  flush();
+
+  const sectionsHTML = sections.map(sec => {
+    if (sec.title.includes('SUMÁRIO') || sec.title.includes('Sumário')) {
+      return `<div class="dc-toc">
+        <div class="dc-toc-title">Sumário</div>
+        ${sec.content.split('\n').filter(l => /^\d+\./.test(l.trim())).map(l => {
+          const m = l.trim().match(/^(\d+)\.\s+(.+)/);
+          return m ? `<div class="dc-toc-row"><span class="dc-toc-num">${m[1]}</span><span>${m[2]}</span><span class="dc-toc-dots"></span></div>` : '';
+        }).join('')}
+      </div>`;
     }
-    index += line.text.length + 1;
+    return `<div class="dc-sec">
+      ${sec.tag ? `<div class="dc-sec-tag">${sec.tag}</div>` : ''}
+      <div class="dc-sec-title">${sec.title}</div>
+      <div class="dc-prose">${renderMDContent(sec.content, type)}</div>
+    </div>`;
+  }).join('');
+
+  return cover + sectionsHTML;
+}
+
+function renderMDContent(md, type) {
+  if (!md) return '';
+  let html = md;
+
+  // Tables → styled HTML tables
+  html = html.replace(/(\|.+\|\n)+/g, match => {
+    const rows = match.trim().split('\n');
+    const isHeader = rows[1] && /^\|[\s\-|]+\|$/.test(rows[1]);
+    let out = '<div class="tw"><table class="dc-table">';
+    rows.forEach((row, i) => {
+      if (i === 1 && isHeader) return;
+      const cells = row.split('|').filter((_, ci) => ci > 0 && ci < row.split('|').length - 1);
+      if (!cells.length) return;
+      if (i === 0 && isHeader) {
+        out += '<thead><tr>' + cells.map(c => `<th>${renderInline(c.trim())}</th>`).join('') + '</tr></thead><tbody>';
+      } else {
+        out += '<tr>' + cells.map(c => `<td>${renderInline(c.trim())}</td>`).join('') + '</tr>';
+      }
+    });
+    out += '</tbody></table></div>';
+    return out;
   });
 
-  return requests;
+  // Blockquotes
+  html = html.replace(/^> (.+)$/gm, '<blockquote style="border-left:3px solid #c8f55a;padding:8px 14px;background:#f8fff0;color:#555;font-size:13px;margin:12px 0;border-radius:0 6px 6px 0">$1</blockquote>');
+
+  // H3
+  html = html.replace(/^### (.+)$/gm, '<div class="dc-subsec">$1</div>');
+
+  // Lists
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul style="margin:8px 0 12px 22px;font-size:13px;color:#333">${m}</ul>`);
+
+  // Numbered list
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+  // HR
+  html = html.replace(/^---$/gm, '<hr class="dc-divider">');
+
+  // Inline
+  html = renderInline(html);
+
+  // Paragraphs
+  html = html.split('\n\n').map(p => {
+    p = p.trim();
+    if (!p) return '';
+    if (p.startsWith('<')) return p;
+    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+
+  return html;
+}
+
+function renderInline(t) {
+  return t
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;font-size:12px">$1</code>');
+}
+
+function renderDocCharts(type) {
+  // Render historical charts in the document if hist data exists
+  if (!SD || !SD.hist.length) return;
+  // Charts are rendered as canvas elements inline in the doc
+  // (The markdown already has the data tables, charts are bonus)
+}
+
+// ════════════════════════════════════════════════════════
+// PDF EXPORT
+// ════════════════════════════════════════════════════════
+async function exportPDF(docId, type) {
+  const el = document.getElementById(docId);
+  if (!el || !el.innerHTML.trim() || el.innerHTML.includes('Gere e edite')) {
+    alert('Gere e visualize o relatório primeiro.');
+    return;
+  }
+
+  const client = document.getElementById('cl-name').value || 'Cliente';
+  const mes = document.getElementById('cl-mes').value || '';
+
+  // Use browser print for best fidelity
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Report ${client} ${mes}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #fff; color: #1a1a1a; font-size: 13px; line-height: 1.6; }
+  @page { margin: 0; size: A4; }
+  .dc-cover { background: linear-gradient(135deg, #0d1117 0%, #111a0d 40%, #162110 100%); padding: 56px 60px; display: flex; flex-direction: column; justify-content: space-between; min-height: 297mm; page-break-after: always; color: #fff; }
+  .dc-tagline { font-size: 10px; text-transform: uppercase; letter-spacing: .2em; color: #c8f55a; font-weight: 700; margin-bottom: 8px; }
+  .dc-type { font-size: 12px; color: #888; margin-bottom: 28px; }
+  .dc-client { font-size: 38px; font-weight: 800; color: #fff; letter-spacing: -1px; margin-bottom: 6px; }
+  .dc-period { font-size: 16px; color: #888; margin-bottom: 48px; }
+  .dc-meta { display: flex; gap: 40px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 24px; }
+  .dc-meta-item { display: flex; flex-direction: column; gap: 3px; }
+  .dc-meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #666; }
+  .dc-meta-val { font-size: 13px; font-weight: 600; color: #ccc; }
+  .dc-sec { padding: 32px 60px; border-bottom: 1px solid #eee; page-break-inside: avoid; }
+  .dc-toc { padding: 32px 60px; border-bottom: 1px solid #eee; }
+  .dc-toc-title { font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: #c8f55a; font-weight: 700; margin-bottom: 16px; }
+  .dc-toc-row { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; gap: 10px; }
+  .dc-toc-num { font-size: 11px; color: #999; width: 20px; font-weight: 600; }
+  .dc-toc-dots { flex: 1; border-bottom: 1px dotted #ddd; margin: 0 8px; margin-top: 6px; }
+  .dc-sec-tag { font-size: 9px; text-transform: uppercase; letter-spacing: .18em; color: #c8f55a; font-weight: 700; margin-bottom: 5px; }
+  .dc-sec-title { font-size: 20px; font-weight: 800; color: #0d0d0d; margin-bottom: 20px; }
+  .dc-subsec { font-size: 14px; font-weight: 700; color: #1a1a1a; margin: 18px 0 8px; }
+  .dc-prose p { margin-bottom: 12px; font-size: 14px; line-height: 1.8; color: #2a2a2a; }
+  .dc-prose ul { margin: 8px 0 12px 22px; }
+  .dc-prose li { margin-bottom: 4px; font-size: 13px; color: #333; }
+  .dc-prose strong { font-weight: 700; color: #1a1a1a; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; page-break-inside: avoid; }
+  th { text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid #e0e0e0; background: #fafafa; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; line-height: 1.4; color: #1a1a1a; }
+  tr:hover td { background: #fafafa; }
+  blockquote { border-left: 3px solid #c8f55a; padding: 8px 14px; background: #f8fff0; color: #555; font-size: 13px; margin: 12px 0; border-radius: 0 6px 6px 0; }
+  hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  em { font-style: italic; }
+  .dc-divider { border: none; border-top: 1px solid #e8e8e8; margin: 16px 0; }
+</style>
+</head>
+<body>
+${el.innerHTML}
+</body>
+</html>`);
+  printWin.document.close();
+  setTimeout(() => {
+    printWin.focus();
+    printWin.print();
+  }, 800);
+}
+
+// ════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════
+function copyMD(type) {
+  const md = document.getElementById('md-' + type)?.value || '';
+  if (!md) { alert('Gere o relatório primeiro.'); return; }
+  navigator.clipboard.writeText(md).then(() => alert('Markdown copiado!'));
 }
 </script>
 </body>
