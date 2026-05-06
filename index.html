@@ -369,7 +369,7 @@ function connectGoogle() {
   const clientId = document.getElementById('google-client-id').value.trim();
   if (!clientId) { alert('Cole o Google OAuth Client ID primeiro.'); return; }
   const scopes = encodeURIComponent('https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file');
-  const redirect = encodeURIComponent(window.location.href.split('?')[0]);
+  const redirect = encodeURIComponent('https://julianagalvaods.github.io/Taura-Reports');
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirect}&response_type=token&scope=${scopes}`;
   window.open(url, '_blank', 'width=500,height=600');
   window.addEventListener('message', e => {
